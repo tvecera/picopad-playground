@@ -16,7 +16,7 @@ specifically generates images that are compatible with the Picopad loader applic
 The tool reads image files, provides some basic information about them, downsamples the images by reducing the bit depth
 of each color channel, and saves the resulting image as a 16-bit BMP file.
 
-# Picopad TFT Display emulator
+## Picopad TFT Display emulator
 
 This project provides an emulator for the TFT display of Picopad handheld devices. It's designed to assist in the
 prototyping and development of applications for Picopad handhelds. With this tool, you can easily prepare and test your
