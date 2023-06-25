@@ -2437,3 +2437,40 @@ u16 BlendCol16(u16 col1, u16 col2, u8 level) {
             return col2;
     }
 }
+
+void DrawGauge(int x0, int y0, int r_outer, int r_inner, int percentage, u16 gauge_col, u16 fill_col) {
+    float angle;
+    float radian;
+    float x, y;
+    float pi = 3.14159;
+    int filledToAngle = percentage * 3.6; // convert percentage to degrees
+    int gap = 4; // adjust this to increase or decrease the gap
+
+    // draw outer circle
+    for (angle = 0; angle < 360; angle += 0.01) {
+        radian = (angle - 90) * (pi / 180); // shift by -90 degrees to start at top
+        x = x0 + r_outer * cos(radian);
+        y = y0 + r_outer * sin(radian);
+        DrawPoint(x, y, gauge_col);
+    }
+
+    // draw inner circle
+    for (angle = 0; angle < 360; angle += 0.01) {
+        radian = (angle - 90) * (pi / 180); // shift by -90 degrees to start at top
+        x = x0 + r_inner * cos(radian);
+        y = y0 + r_inner * sin(radian);
+        DrawPoint(x, y, gauge_col);
+    }
+
+    // fill between circles
+    for (angle = 0; angle < filledToAngle; angle += 0.01) {
+        radian = (angle - 90) * (pi / 180); // shift by -90 degrees to start at top
+
+        for (int r = r_inner + gap; r <= r_outer - gap; r++) {
+            int x_fill = x0 + r * cos(radian);
+            int y_fill = y0 + r * sin(radian);
+            DrawPoint(x_fill, y_fill, fill_col);
+        }
+    }
+}
+

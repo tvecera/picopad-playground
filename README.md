@@ -24,6 +24,11 @@ display code using the API of the Picopad SDK.
 
 The code of this emulator is based on the original Picopad SDK source code.
 
+## Picopad SDK Pico SDK Fork
+
+Fork of the Picopad SDK, built on the Pico SDK. The goal was to add the capability to use libraries for the Pico SDK 
+on the Picopad.
+
 ## Links
 
 - Picopad from Pajenicko e-shop

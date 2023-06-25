@@ -1,3 +1,6 @@
-/tft-emulator/cmake-build-debug/
-/tft-emulator/cmake-build-release/
+/**/cmake-build-debug/
+/**/cmake-build-release/
 /tools/venv/
+picopad-sdk/pico-sdk
+venv
+/**/venv

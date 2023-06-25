@@ -89,4 +89,6 @@ typedef u16 uint16_t;		// used only by PIO program
 #define COL_LTBLUE	RGBTO16(0, 128, 255)
 #define COL_ORANGE	RGBTO16(255, 128, 0)
 
+#define PI 3.14159265358979324
+
 #endif // _GLOBAL_H
