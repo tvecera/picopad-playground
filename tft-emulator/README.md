@@ -78,7 +78,7 @@ Your project should now be able to use SFML.
 
 1. Clone this repository to your local machine.
 2. Navigate to the project's directory.
-3. Compile the source code with your CMAKE. 
+3. Compile the source code with your CMAKE.
 
 ## Usage
 
@@ -88,3 +88,91 @@ Modify the `main.cpp` file to create the UI of your application using the Picopa
 
 - Picopad from Pajenicko e-shop
 - Picopad SDK (https://github.com/Pajenicko/Picopad)
+
+## Setting up CMake Build for TFT Emulator with SFML on Windows using Visual Studio Code
+
+This guide is aimed at Windows users who wish to set up a development environment using Visual Studio Code and CMake for
+building a TFT emulator with the Simple and Fast Multimedia Library (SFML). It will guide you through the installation
+and configuration process.
+
+## Prerequisites
+
+Ensure you have the following installed on your system:
+
+- [Visual Studio Code](https://code.visualstudio.com/)
+- [MSYS2](https://www.msys2.org/)
+
+## Step 1: Installation and Configuration of MSYS2
+
+Download and install MSYS2 from the [MSYS2 website](https://www.msys2.org/). At the end of the installation, you will
+be prompted whether you want to run MSYS2 now. Please check this option (Run MSYS2 now).
+
+![install-msys2.png](img/install-msys2.png)
+
+## Step 2: Install Necessary Tools via MSYS2 Terminal
+
+In the opened terminal, insert the following command:
+
+```shell
+pacman -S --needed base-devel mingw-w64-x86_64-toolchain
+```
+
+You will see `Enter a selection (default=all):`. Please press enter.
+
+![pacman.png](img/pacman.png)
+
+After the installation, add Mingw into your system path:
+
+- In the Windows search bar, type 'settings' to open your Windows Settings.
+- Search for 'Edit environment variables for your account'.
+- Choose the `Path` variable in your User variables, then select `Edit`.
+- Select `New` and add the Mingw-w64 destination folder path to the system path. The exact path depends on which
+  version of Mingw-w64 you have installed and where you installed it. If you used the settings above to install
+  Mingw-w64, then add this to the path: `C:\msys64\mingw64\bin`.
+
+![path.png](img/path.png)
+
+## Step 3: Download and Install SFML
+
+- Download SFML from the [SFML website](https://www.sfml-dev.org/download/sfml/2.6.0/). Please make sure to choose the
+  version: **GCC 13.1.0 MinGW (SEH) - 64-bit**.
+- Extract it to a directory of your choice.
+
+## Step 4: Set Up Visual Studio Code
+
+- If not already installed, download and install Visual Studio Code from [here](https://code.visualstudio.com/).
+- Install the following plugins for Visual Studio Code:
+
+[C/C++ - Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools)
+
+![extension-1.png](img/extension-1.png)
+
+[CMake Tools - Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)
+
+![extension-2.png](img/extension-2.png)
+
+## Step 5: Setting Up the Build System in Visual Studio Code
+
+- Press `CTRL + SHIFT + P` - Enter: `CMake: Select a Kit`.
+
+![cmake-1.png](img/cmake-1.png)
+
+- Then choose `Scan for kits`, Visual Studio should automatically find the Mingw installation.
+- After scanning, enter `CMake: Select a Kit` again.
+- Choose `GCC 13.1.0 x86_64-w64-mingw32 (mingw64)`.
+
+![cmake-2.png](img/cmake-2.png)
+
+- In the `CMakeLists.txt` file, uncomment these two lines:
+
+```CMake
+    set(SFML_STATIC_LIBRARIES TRUE)
+    set(SFML_DIR "c:/picopad/SFML-2.6.0/lib/cmake/SFML")
+```
+
+- Modify the path to SFML as needed.
+- Press `CTRL + SHIFT + P`, enter `CMake: Delete cache and Reconfigure`.
+- To build the test program, you just need to press `CTRL + SHIFT + P`, `CMake: Build Target` to build the
+  application.
+
+Now you are ready to develop your TFT emulator with SFML using CMake build in Visual Studio Code on Windows!

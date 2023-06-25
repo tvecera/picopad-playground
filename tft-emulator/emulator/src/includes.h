@@ -2,6 +2,7 @@
 #define _INCLUDES_H
 
 #include "global.h"			// globals
+#include <math.h>
 
 // fonts
 #include "../_font/font_bold_8x8.h"
