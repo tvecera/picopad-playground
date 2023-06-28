@@ -4,6 +4,7 @@ if (NOT TARGET picopad_st7789_headers)
     target_link_libraries(
             picopad_st7789_headers INTERFACE
             picopad
+            picopad_sdk
             pico_stdlib
             hardware_gpio
             hardware_spi
