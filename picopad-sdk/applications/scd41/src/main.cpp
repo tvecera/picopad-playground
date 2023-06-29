@@ -23,7 +23,7 @@ int main() {
     DrawText("Connecting...", 112, 19, COL_WHITE);
 
     DispUpdate();
-    SCD4x SCD41;
+    auto SCD41 = SCD4x(SCD4x_SENSOR_SCD41);
 
     i2c_init(i2c0, 400000);
     gpio_set_function(0, GPIO_FUNC_I2C);
