@@ -997,7 +997,6 @@ void DispBigErr(const char *text = "Loading Error") {
 
 int show_file_manager() {
     DrawClear(COL_BLACK);
-    SDInit();
     int i, j, k, m, n;
     u32 t;
     sFileDesc *fd;
@@ -1312,7 +1311,6 @@ int show_file_manager() {
 
                     // restart program
                 case KEY_Y:
-                    SDTerm();
                     return 0;
                     break;
 

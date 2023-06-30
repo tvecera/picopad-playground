@@ -79,6 +79,8 @@ void DispInit(u8 rot);
 // terminate display
 void DispTerm();
 
+void DispWriteData(const void *data, int len);
+
 void set_brightness(u8 value);
 
 #ifdef __cplusplus
