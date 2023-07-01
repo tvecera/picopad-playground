@@ -74,7 +74,7 @@ void DispUpdateAll();
 //		1 Landscape
 //		2 Inverted Portrait
 //		3 Inverted Landscape
-void DispInit(u8 rot);
+void DispInit(u8 rot, bool init_display_spi);
 
 // terminate display
 void DispTerm();

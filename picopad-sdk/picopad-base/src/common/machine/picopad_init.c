@@ -18,7 +18,7 @@
 #include "lib_mem.h"
 
 // Device init
-void DeviceInit(bool load_config_from_sd)
+void DeviceInit(bool load_config_from_sd, bool init_display_spi)
 {
     // select GPIO function
     gpio_init(LED_PIN);
@@ -36,7 +36,7 @@ void DeviceInit(bool load_config_from_sd)
 	}
 
 	// initialize display
-	DispInit(1);
+	DispInit(1, init_display_spi);
 
 	// initilize keys
 	KeyInit();

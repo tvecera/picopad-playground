@@ -35,7 +35,7 @@ for dir in */ ; do
 
     # Copy the contents of 'build' directory to '../sdcard'
     if [ -d "build" ]; then
-        cp -rf build/* ../../sdcard/
+        cp -rf build/* ../../sdcard/APPS/
     fi
 
     # Go back to the parent directory

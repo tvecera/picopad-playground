@@ -16,7 +16,7 @@ extern "C" {
 #include "picopad.h"
 
 // Device init
-void DeviceInit(bool load_config_from_sd = False);
+void DeviceInit(bool load_config_from_sd = False, bool init_display_spi = True);
 
 // Device terminate
 void DeviceTerm();

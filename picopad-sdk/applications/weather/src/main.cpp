@@ -4,7 +4,6 @@
 
 #include "st7789.h"
 #include "lib_drawtft.h"
-#include "sdk_bootrom.h"
 
 #include "picopad_init.h"
 #include "picopad_key.h"
@@ -15,7 +14,7 @@
 #include "images.h"
 
 int main() {
-    DeviceInit();
+    DeviceInit(true);
 
     DrawClear(COL_BLACK);
     KeyFlush();

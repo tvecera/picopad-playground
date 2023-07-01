@@ -1,3 +1,11 @@
+# Picopad Playground
+
+**Clone repository**
+
+```bash
+  git clone --recurse-submodules https://github.com/tvecera/picopad-playground
+```
+
 ## PyPicoPadImg Generator
 
 This Python program is designed to generate image arrays compatible with Picopad SDK. It takes an image file as input and 

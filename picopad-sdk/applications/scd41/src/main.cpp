@@ -13,7 +13,7 @@
 #include "images.h"
 
 int main() {
-    DeviceInit();
+    DeviceInit(true);
 
     DrawClear(COL_BLACK);
     KeyFlush();

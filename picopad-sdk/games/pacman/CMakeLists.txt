@@ -56,7 +56,12 @@ add_custom_command(TARGET ${PROJECT_NAME}
         COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_NAME}.bin ${CMAKE_BINARY_DIR}/../build/${PROJECT_NAME_UPPER}.PP2
         )
 
-file(COPY ${CMAKE_BINARY_DIR}/../assets/ DESTINATION ${CMAKE_BINARY_DIR}/../build/)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_BINARY_DIR}/../assets/"
+        "${CMAKE_BINARY_DIR}/../build/"
+        COMMENT "Copying assets to build directory"
+        )
 
 # Print the size of the binary file after the build is complete
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

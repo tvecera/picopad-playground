@@ -277,10 +277,12 @@ void DispUpdateAll() {
 //		1 Landscape
 //		2 Inverted Portrait
 //		3 Inverted Landscape
-void DispInit(u8 rot) {
+void DispInit(u8 rot, bool init_display_spi) {
     // SPI initialize
-    spi_init(DISP_SPI, DISP_SPI_BAUD);
-    spi_set_format(DISP_SPI, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
+    if (init_display_spi) {
+        spi_init(DISP_SPI, DISP_SPI_BAUD);
+        spi_set_format(DISP_SPI, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
+    }
 
     // setup pins
     gpio_put(DISP_BLK_PIN, 0);
