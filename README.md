@@ -6,6 +6,38 @@
   git clone --recurse-submodules https://github.com/tvecera/picopad-playground
 ```
 
+## How to install Gameboy Emulator in Windows 11
+
+(internal notes)
+Configuration slightly modified for older cmake version etc.
+
+
+```cmd
+C:\> wsl --install Ubuntu-22.04 
+```
+
+then run Terminal and Ubuntu-22 LTS in it:
+
+![image](https://github.com/misch2/picopad-playground/assets/16558674/271df4ce-b1a0-458f-81df-c63d7e04d98a)
+
+```bash
+$ sudo apt update
+$ sudo install cmake xxd gcc-arm-none-eabi g++ build-essential
+$ git clone --recurse-submodules //github.com/misch2/picopad-playground
+$ cd picopad-playground
+$ git clone https://github.com/raspberrypi/pico-sdk.git
+$ ln -s picopad-sdk/picopad-base .
+$ cd picopad-sdk/picopad-gb/
+$ cmake .
+$ cmake --build .
+
+```
+
+
+
+
+
+
 ## PyPicoPadImg Generator
 
 This Python program is designed to generate image arrays compatible with Picopad SDK. It takes an image file as input and 
