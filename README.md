@@ -17,11 +17,12 @@ C:\> wsl --install Ubuntu-22.04
 ```
 
 then run Terminal and Ubuntu-22 LTS in it:
+
 ![image](https://github.com/misch2/picopad-playground/assets/16558674/271df4ce-b1a0-458f-81df-c63d7e04d98a)
 
 ```bash
 $ sudo apt update
-$ sudo install cmake xxd gcc-arm-none-eabi
+$ sudo install cmake xxd gcc-arm-none-eabi g++ build-essential
 $ git clone --recurse-submodules //github.com/misch2/picopad-playground
 $ cd picopad-playground
 $ git clone https://github.com/raspberrypi/pico-sdk.git
