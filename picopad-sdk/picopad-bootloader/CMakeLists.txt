@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
-set(PICO_TOOLCHAIN_PATH /Applications/ARM)
+#set(PICO_TOOLCHAIN_PATH /Applications/ARM)
+set(PICO_TOOLCHAIN_PATH /usr)
 set(PICO_SDK_PATH ../../pico-sdk)
 set(PICOPAD_BASE_PATH ../../picopad-base)
 
