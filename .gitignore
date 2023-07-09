@@ -6,3 +6,7 @@ venv
 /**/venv
 games
 picopad-sdk/gb
+cmake_install.cmake
+picopad-sdk/**/Makefile
+pico-sdk/**/Makefile
+/**/CMakeFiles/

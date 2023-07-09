@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-set(PICO_SDK_PATH ../../pico-sdk)
+set(PICO_SDK_PATH ../../_make/_tmp/pico-sdk)
 
 if (NOT TARGET _picopad_base_inclusion_marker)
     add_library(_picopad_base_inclusion_marker INTERFACE)
