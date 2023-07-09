@@ -22,16 +22,11 @@ then run Terminal and Ubuntu-22 LTS in it:
 
 ```bash
 $ sudo apt update
-$ sudo install cmake xxd gcc-arm-none-eabi g++ build-essential
+$ sudo apt install cmake xxd gcc-arm-none-eabi g++ build-essential
 $ git clone --recurse-submodules //github.com/misch2/picopad-playground
 $ cd picopad-playground
-$ git clone https://github.com/raspberrypi/pico-sdk.git
-$ ln -s picopad-sdk/picopad-base .
-$ cd picopad-sdk/picopad-gb/
-$ cmake .
-$ cmake --build .
+$ make
 
-```
 
 
 
