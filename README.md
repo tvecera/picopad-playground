@@ -25,7 +25,7 @@ $ sudo apt update
 $ sudo apt install cmake xxd gcc-arm-none-eabi g++ build-essential
 $ git clone --recurse-submodules //github.com/misch2/picopad-playground
 $ cd picopad-playground
-$ make
+$ make -C _make
 
 
 
