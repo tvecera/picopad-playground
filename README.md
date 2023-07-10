@@ -1,12 +1,10 @@
 # Picopad Playground
 
-**Clone repository**
+This is a slightly modified https://github.com/tvecera/picopad-playground repository with some minor tweaks for easy and automated compilation under Ubuntu 22 WSL for Windows.
 
-```bash
-  git clone --recurse-submodules https://github.com/tvecera/picopad-playground
-```
+## Howto:
 
-## How to install Gameboy Emulator in Windows 11
+Install Ubuntu 22 as WSL:
 
 ```cmd
 C:\> wsl --install Ubuntu-22.04 
