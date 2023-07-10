@@ -10,7 +10,8 @@ Install Ubuntu 22 as WSL:
 C:\> wsl --install Ubuntu-22.04 
 ```
 
-then run Terminal with Ubuntu-22 LTS in it:
+then run Terminal with Ubuntu-22 LTS in it. You should get the Bash prompt (`$ `). 
+Clone this repository there:
 
 ```bash
 $ git clone --recurse-submodules //github.com/misch2/picopad-playground
