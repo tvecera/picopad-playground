@@ -1,6 +1,6 @@
 # Picopad Playground
 
-This is a slightly modified https://github.com/tvecera/picopad-playground repository with some minor tweaks for easy and automated compilation under Ubuntu 22 WSL for Windows.
+This is a slightly modified https://github.com/tvecera/picopad-playground repository with some minor tweaks for easy and automated compilation under Ubuntu 22 WSL for Windows. Uses information from @kevinar user on Twitter: https://twitter.com/kevinarcz/status/1678023837957365761?s=20.
 
 ## Howto:
 
@@ -18,21 +18,21 @@ $ git clone --recurse-submodules //github.com/misch2/picopad-playground
 $ cd picopad-playground
 ```
 
-Copy your GB ROM (.gb file) there. Replace XXX and YYY in the path with real folder names:
+Copy your GB ROM (.gb file) there. Replace XXX and YYY in the path with real folder names. WSL2 allows access to the Windows drives using `/mnt/X/...` syntax so for example your `C:\Users\Michal\Downloads` folder can be accessed as `/mnt/c/Users/Michal/Downloads`:
 
 ```
 cp /mnt/t/Users/XXXYourName/Downloads/YYY.gb _make/rom.gb
 ```
 
-Compile everything:
+Compile everything using the Makefile in the `_make/` subfolder:
 
 ```
 $ make -C _make
 ```
 
-This should produce PICOPAD-GB.PP2 file. But it doesn't seem to be recognized by the Picopad. Why? 
+This should produce PICOPAD-GB.PP2 file in ⚠️ TODO. 
 
-⚠️TODO
+⚠️TODO bootloader (add howto for compilation and link to installation)
 
 
 
