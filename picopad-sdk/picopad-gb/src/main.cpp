@@ -1,7 +1,7 @@
 // Enable LCD
 #define ENABLE_LCD    1
 // Disable sound
-#define ENABLE_SOUND    0
+#define ENABLE_SOUND    1
 // High accuracy mode for Peanut GB
 #define PEANUT_GB_HIGH_LCD_ACCURACY 1
 
@@ -15,6 +15,7 @@
 #include <pico/multicore.h>
 
 // Peanut GB library
+#include "minigb_apu.h"
 #include "peanut_gb.h"
 
 // LCD display libraries
@@ -25,6 +26,7 @@
 #include "picopad_init.h"
 #include "picopad_key.h"
 #include "sdk_watchdog.h"
+#include "lib_pwmsnd.h"
 
 // Button GPIO mapping
 #define GPIO_BUTTON_UP        4
@@ -44,6 +46,10 @@ static unsigned char romBank0[32768];
 static uint8_t gameRam[32768];
 // LCD Line status
 static int lcdLineStatus = 0;
+
+#if ENABLE_SOUND
+int16_t *stream;
+#endif
 
 // Previous joypad state
 static struct {
@@ -109,10 +115,16 @@ static const uint16_t greyscalePalette[3][4] = {
         {0xFFFF, 0xAD55, 0x52AA, 0x0000}
 };
 
+static const uint16_t colorPalette[3][4] = {
+        {0xFFFF, 0xED13, 0xA207, 0x0000,},
+        {0xFFFF, 0xED13, 0xA207, 0x0000,},
+        {0xFFFF, 0x9E89, 0x3C9B, 0x0000,},
+};
+
 inline void core1DrawLine(const uint_fast8_t line) {
     static uint16_t fb[WIDTH];
     for (uint8_t x = 0; x < LCD_WIDTH; x++) {
-        uint16_t color = greyscalePalette[(pixelBuffer[x] & LCD_PALETTE_ALL) >> 4][pixelBuffer[x] & 3];
+        uint16_t color = colorPalette[(pixelBuffer[x] & LCD_PALETTE_ALL) >> 4][pixelBuffer[x] & 3];
         fb[2 * x] = color;
         fb[(2 * x + 1)] = color;
     }
@@ -204,6 +216,12 @@ int main() {
     // Initialize the Picopad device
     DeviceInit(true, false);
 
+#if ENABLE_SOUND
+    stream = static_cast<int16_t *>(malloc(AUDIO_BUFFER_SIZE_BYTES));
+    assert(stream != nullptr);
+    memset(stream, 0, AUDIO_BUFFER_SIZE_BYTES);  // Zero out the stream buffer
+#endif
+
     // Main game loop
     while (true) {
         DrawClear(COL_BLACK);
@@ -224,9 +242,18 @@ int main() {
         // Start Core1, which processes requests to the LCD
         multicore_launch_core1(core1MainFunction);
 
+#if ENABLE_SOUND
+        // Init audio
+        audio_init();
+#endif
         // Frame count variable
         uint_fast32_t frameCount = 0;
         do {
+#if ENABLE_SOUND
+            // Allocate space for the mono and resampled stream.
+            // We're assuming AUDIO_SAMPLES is the total number of samples in both channels.
+            auto *monoStream = new uint8_t[AUDIO_BUFFER_SIZE_BYTES / 4]; // Dividing by 4 because we're also resampling
+#endif
             gbContext.gb_frame = 0;
             do {
                 __gb_step_cpu(&gbContext);
@@ -234,6 +261,30 @@ int main() {
             } while (gbContext.gb_frame == 0);
 
             frameCount++;
+
+#if ENABLE_SOUND
+            audio_callback(nullptr, stream, AUDIO_BUFFER_SIZE_BYTES);
+
+            int j = 0;
+            int32_t mono16BitFiltered = 0;
+
+            for (int i = 0; i < AUDIO_BUFFER_SIZE_BYTES / 2; i += 2) {
+                int32_t leftChannel = stream[i];
+                int32_t rightChannel = stream[i + 1];
+
+                // Average left and right channels to create mono channel.
+                int32_t mono16Bit = (leftChannel + rightChannel) / 2;
+
+                // Apply a simple low-pass filter (moving average).
+                mono16BitFiltered = (mono16BitFiltered + mono16Bit) / 2;
+
+                // Convert to 8 bits by dropping the least significant 8 bits.
+                monoStream[j] = static_cast<uint8_t>((mono16BitFiltered + 128) >> 8);
+                j++;
+            }
+            // Now monoStream contains the 8-bit mono and resampled audio.
+            PlaySound(monoStream, AUDIO_BUFFER_SIZE_BYTES / 4);
+#endif
 
             // Update gamepad state
             prevGamepadState.up = gbContext.direct.joypad_bits.up;
@@ -254,6 +305,10 @@ int main() {
             gbContext.direct.joypad_bits.b = gpio_get(GPIO_BUTTON_B);
             gbContext.direct.joypad_bits.select = gpio_get(GPIO_BUTTON_SELECT);
             gbContext.direct.joypad_bits.start = gpio_get(GPIO_BUTTON_START);
+
+#if ENABLE_SOUND
+            delete[] monoStream;
+#endif
         } while (KeyGet() != KEY_Y);
 
         // Reset core1 and reset to bootloader

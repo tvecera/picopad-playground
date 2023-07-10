@@ -16,7 +16,9 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
-add_executable(${PROJECT_NAME} src/rom.c src/main.cpp)
+add_executable(${PROJECT_NAME} vendor/minigb_apu/minigb_apu.c src/rom.c src/main.cpp)
+
+target_include_directories(${PROJECT_NAME} PRIVATE vendor/minigb_apu)
 
 target_link_libraries(${PROJECT_NAME}
         pico_stdlib
