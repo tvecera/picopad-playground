@@ -8,24 +8,32 @@
 
 ## How to install Gameboy Emulator in Windows 11
 
-(internal notes)
-Configuration slightly modified for older cmake version etc.
-
-
 ```cmd
 C:\> wsl --install Ubuntu-22.04 
 ```
 
-then run Terminal and Ubuntu-22 LTS in it:
-
-![image](https://github.com/misch2/picopad-playground/assets/16558674/271df4ce-b1a0-458f-81df-c63d7e04d98a)
+then run Terminal with Ubuntu-22 LTS in it:
 
 ```bash
-$ sudo apt update
-$ sudo apt install cmake xxd gcc-arm-none-eabi g++ build-essential
 $ git clone --recurse-submodules //github.com/misch2/picopad-playground
 $ cd picopad-playground
+```
+
+Copy your GB ROM (.gb file) there. Replace XXX and YYY in the path with real folder names:
+
+```
+cp /mnt/t/Users/XXXYourName/Downloads/YYY.gb _make/rom.gb
+```
+
+Compile everything:
+
+```
 $ make -C _make
+```
+
+This should produce PICOPAD-GB.PP2 file. But it doesn't seem to be recognized by the Picopad. Why? 
+
+⚠️TODO
 
 
 
