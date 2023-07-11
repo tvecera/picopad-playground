@@ -28,6 +28,7 @@ float GetBat()
     gpio_init(LED_PIN);
     gpio_pull_down(LED_PIN);
     gpio_set_dir(LED_PIN, true);
+    gpio_put(LED_PIN, true);
 
     // switch to battery input
     ADC_Mux(BAT_ADC);
