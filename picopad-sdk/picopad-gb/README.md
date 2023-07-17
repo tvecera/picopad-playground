@@ -3,6 +3,9 @@
 This is a GameBoy emulator for the Picopad, based on the Peanut-GB project. The result of the build is a `.PP2` file
 that can be uploaded to Picopad via custom bootloader. Please note that the sound is not functional.
 
+Experimental "FULL" GameBoy Color support is available. To enable this, change ```PEANUT_FULL_GBC_SUPPORT 0``` to
+```PEANUT_FULL_GBC_SUPPORT 1``` in the main.cpp file.
+
 ## Prerequisites
 
 Ensure you have `xxd` installed on your machine. This utility is used for hex dumps and is typically available in

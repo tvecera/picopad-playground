@@ -1,12 +1,18 @@
-// Enable LCD
-#define ENABLE_LCD    1
+// Experimental FULL GBC support
+#define PEANUT_FULL_GBC_SUPPORT 0
+#if PEANUT_FULL_GBC_SUPPORT
 // Disable sound
 #define ENABLE_SOUND    1
+#else
+#define ENABLE_SOUND    1
+#endif
+
+// Enable LCD
+#define ENABLE_LCD    1
 // High accuracy mode for Peanut GB
 #define PEANUT_GB_HIGH_LCD_ACCURACY 1
 
 // Pico libraries
-#include <string.h>
 #include <hardware/clocks.h>
 #include <hardware/spi.h>
 #include <hardware/vreg.h>
@@ -40,16 +46,17 @@
 
 // ROM data
 extern const unsigned char gameRom[];
+
 // ROM Bank 0 data
+#if PEANUT_FULL_GBC_SUPPORT
+static unsigned char romBank0[16384];
+#else
 static unsigned char romBank0[32768];
+#endif
 // Game RAM
 static uint8_t gameRam[32768];
 // LCD Line status
 static int lcdLineStatus = 0;
-
-#if ENABLE_SOUND
-int16_t *stream;
-#endif
 
 // Previous joypad state
 static struct {
@@ -121,10 +128,37 @@ static const uint16_t colorPalette[3][4] = {
         {0xFFFF, 0x9E89, 0x3C9B, 0x0000,},
 };
 
+#if PEANUT_FULL_GBC_SUPPORT
+
+inline uint16_t ConvertRGB555toRGB565(uint16_t rgb555) {
+    uint16_t r = (rgb555 & 0x7C00) >> 10;
+    uint16_t g = (rgb555 & 0x03E0) >> 5;
+    uint16_t b = (rgb555 & 0x001F);
+
+    g = g << 1;
+    if ((rgb555 & 0x0020) != 0) {
+        g |= 0x01;
+    }
+
+    uint16_t rgb565 = (r << 11) | (g << 5) | b;
+    return rgb565;
+}
+
+#endif
+
 inline void core1DrawLine(const uint_fast8_t line) {
     static uint16_t fb[WIDTH];
     for (uint8_t x = 0; x < LCD_WIDTH; x++) {
-        uint16_t color = colorPalette[(pixelBuffer[x] & LCD_PALETTE_ALL) >> 4][pixelBuffer[x] & 3];
+        uint16_t color;
+#if PEANUT_FULL_GBC_SUPPORT
+        if (gbContext.cgb.cgbMode) {  // CGB
+            color = ConvertRGB555toRGB565(gbContext.cgb.fixPalette[pixelBuffer[x]]);
+        } else {  // DMG
+#endif
+            color = colorPalette[(pixelBuffer[x] & LCD_PALETTE_ALL) >> 4][pixelBuffer[x] & 3];
+#if PEANUT_FULL_GBC_SUPPORT
+        }
+#endif
         fb[2 * x] = color;
         fb[(2 * x + 1)] = color;
     }
@@ -217,9 +251,7 @@ int main() {
     DeviceInit(true, false);
 
 #if ENABLE_SOUND
-    stream = static_cast<int16_t *>(malloc(AUDIO_BUFFER_SIZE_BYTES));
-    assert(stream != nullptr);
-    memset(stream, 0, AUDIO_BUFFER_SIZE_BYTES);  // Zero out the stream buffer
+    int16_t stream[AUDIO_BUFFER_SIZE_BYTES] = {0};
 #endif
 
     // Main game loop
@@ -236,9 +268,18 @@ int main() {
         gb_init_lcd(&gbContext, &lcdDrawLine);
 
         // Turn ON Peanut GB frame skip
+        // You should change based on ROM
+#if PEANUT_FULL_GBC_SUPPORT
+        if (gbContext.cgb.cgbMode)
+            gbContext.direct.interlace = 1;
+        else {
+            gbContext.direct.frame_skip = 1;
+            gbContext.display.frame_skip_count = 1;
+        }
+#else
         gbContext.direct.frame_skip = 1;
         gbContext.display.frame_skip_count = 1;
-
+#endif
         // Start Core1, which processes requests to the LCD
         multicore_launch_core1(core1MainFunction);
 
@@ -249,11 +290,6 @@ int main() {
         // Frame count variable
         uint_fast32_t frameCount = 0;
         do {
-#if ENABLE_SOUND
-            // Allocate space for the mono and resampled stream.
-            // We're assuming AUDIO_SAMPLES is the total number of samples in both channels.
-            auto *monoStream = new uint8_t[AUDIO_BUFFER_SIZE_BYTES / 4]; // Dividing by 4 because we're also resampling
-#endif
             gbContext.gb_frame = 0;
             do {
                 __gb_step_cpu(&gbContext);
@@ -279,11 +315,11 @@ int main() {
                 mono16BitFiltered = (mono16BitFiltered + mono16Bit) / 2;
 
                 // Convert to 8 bits by dropping the least significant 8 bits.
-                monoStream[j] = static_cast<uint8_t>((mono16BitFiltered + 128) >> 8);
+                stream[j] = static_cast<uint8_t>((mono16BitFiltered + 128) >> 8);
                 j++;
             }
             // Now monoStream contains the 8-bit mono and resampled audio.
-            PlaySound(monoStream, AUDIO_BUFFER_SIZE_BYTES / 4);
+            PlaySound(reinterpret_cast<const u8 *>(stream), AUDIO_BUFFER_SIZE_BYTES / 4);
 #endif
 
             // Update gamepad state
@@ -305,10 +341,6 @@ int main() {
             gbContext.direct.joypad_bits.b = gpio_get(GPIO_BUTTON_B);
             gbContext.direct.joypad_bits.select = gpio_get(GPIO_BUTTON_SELECT);
             gbContext.direct.joypad_bits.start = gpio_get(GPIO_BUTTON_START);
-
-#if ENABLE_SOUND
-            delete[] monoStream;
-#endif
         } while (KeyGet() != KEY_Y);
 
         // Reset core1 and reset to bootloader
