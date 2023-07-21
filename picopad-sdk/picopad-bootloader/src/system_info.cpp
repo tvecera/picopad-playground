@@ -51,7 +51,8 @@ u8 battery_info() {
     do {
 
         // draw battery
-        i = 7;
+        float bat = GetBat();
+        i = (bat - BATTERY_EMPTY) / (BATTERY_FULL - BATTERY_EMPTY) * 8;
         if (i < 0) i = 0;
         if (i > 7) i = 7;
         DrawImgRle(BatteryImg, BatteryImg_Pal, 0, 0, 128, 240);
