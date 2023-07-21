@@ -44,6 +44,10 @@
 #define GPIO_BUTTON_SELECT    8
 #define GPIO_BUTTON_START     9
 
+#if ENABLE_SOUND
+int16_t *stream;
+#endif
+
 // ROM data
 extern const unsigned char gameRom[];
 
@@ -130,18 +134,17 @@ static const uint16_t colorPalette[3][4] = {
 
 #if PEANUT_FULL_GBC_SUPPORT
 
-inline uint16_t ConvertRGB555toRGB565(uint16_t rgb555) {
-    uint16_t r = (rgb555 & 0x7C00) >> 10;
-    uint16_t g = (rgb555 & 0x03E0) >> 5;
-    uint16_t b = (rgb555 & 0x001F);
+inline uint16_t convertRGB555toRGB565(uint16_t color) {
+    uint16_t r = (color & 0x7C00) << 1;  // Shift red channel left
+    uint16_t g = (color & 0x03E0) << 1;  // Shift green channel left
+    uint16_t b = (color & 0x001F);       // Blue channel stays the same
 
-    g = g << 1;
-    if ((rgb555 & 0x0020) != 0) {
-        g |= 0x01;
+    // If the least significant bit of the original green channel was set, increment the new green channel
+    if (color & 0x0020) {
+        g |= 0x0020;
     }
 
-    uint16_t rgb565 = (r << 11) | (g << 5) | b;
-    return rgb565;
+    return r | g | b;
 }
 
 #endif
@@ -152,7 +155,7 @@ inline void core1DrawLine(const uint_fast8_t line) {
         uint16_t color;
 #if PEANUT_FULL_GBC_SUPPORT
         if (gbContext.cgb.cgbMode) {  // CGB
-            color = ConvertRGB555toRGB565(gbContext.cgb.fixPalette[pixelBuffer[x]]);
+            color = convertRGB555toRGB565(gbContext.cgb.fixPalette[pixelBuffer[x]]);
         } else {  // DMG
 #endif
             color = colorPalette[(pixelBuffer[x] & LCD_PALETTE_ALL) >> 4][pixelBuffer[x] & 3];
@@ -251,7 +254,17 @@ int main() {
     DeviceInit(true, false);
 
 #if ENABLE_SOUND
-    int16_t stream[AUDIO_BUFFER_SIZE_BYTES] = {0};
+    PWMSndTerm();
+    //  266 MHz: 266000000/5644800 = 47.123, INT=47, FRAC=2,
+    //  real sample rate = 266000000/(47+2/16)/256 = 22049Hz
+    PWMSndInitInternal(47, 2);
+    stream = static_cast<int16_t *>(malloc(AUDIO_BUFFER_SIZE_BYTES));
+    assert(stream != nullptr);
+    memset(stream, 0, AUDIO_BUFFER_SIZE_BYTES);  // Zero out the stream buffer
+    // Allocate space for the mono and resampled stream.
+    // We're assuming AUDIO_SAMPLES is the total number of samples in both channels.
+    auto *monoStream = new uint8_t[AUDIO_SAMPLES];
+    static uint16_t samplesCount = 0;
 #endif
 
     // Main game loop
@@ -299,27 +312,29 @@ int main() {
             frameCount++;
 
 #if ENABLE_SOUND
-            audio_callback(nullptr, stream, AUDIO_BUFFER_SIZE_BYTES);
+            if (!PlayingSound()) {
+                memset(monoStream, 0, AUDIO_SAMPLES);  // Zero out the stream buffer
+                samplesCount = audio_callback(nullptr, stream, AUDIO_BUFFER_SIZE_BYTES);
 
-            int j = 0;
-            int32_t mono16BitFiltered = 0;
+                int j = 0;
+                int32_t mono16BitFiltered = 0;
+                for (int i = 0; i < AUDIO_BUFFER_SIZE_BYTES / 2; i += 2) {
+                    int32_t leftChannel = stream[i];
+                    int32_t rightChannel = stream[i + 1];
 
-            for (int i = 0; i < AUDIO_BUFFER_SIZE_BYTES / 2; i += 2) {
-                int32_t leftChannel = stream[i];
-                int32_t rightChannel = stream[i + 1];
+                    // Average left and right channels to create mono channel.
+                    int32_t mono16Bit = (leftChannel + rightChannel) / 2;
 
-                // Average left and right channels to create mono channel.
-                int32_t mono16Bit = (leftChannel + rightChannel) / 2;
+                    // Apply a simple low-pass filter (moving average).
+                    mono16BitFiltered = (mono16BitFiltered + mono16Bit) / 2;
 
-                // Apply a simple low-pass filter (moving average).
-                mono16BitFiltered = (mono16BitFiltered + mono16Bit) / 2;
-
-                // Convert to 8 bits by dropping the least significant 8 bits.
-                stream[j] = static_cast<uint8_t>((mono16BitFiltered + 128) >> 8);
-                j++;
+                    // Convert to 8 bits by dropping the least significant 8 bits.
+                    monoStream[j] = static_cast<uint8_t>((mono16BitFiltered + 128) >> 8);
+                    j++;
+                }
+                // Now monoStream contains the 8-bit mono and resampled audio.
+                PlaySound(monoStream, AUDIO_SAMPLES);
             }
-            // Now monoStream contains the 8-bit mono and resampled audio.
-            PlaySound(reinterpret_cast<const u8 *>(stream), AUDIO_BUFFER_SIZE_BYTES / 4);
 #endif
 
             // Update gamepad state

@@ -84,8 +84,12 @@ void PWMSndIrq() {
     }
 }
 
-// initialize PWM sound output (must be re-initialized after changing CLK_SYS system clock)
 void PWMSndInit() {
+    PWMSndInitInternal(22, 2);
+}
+
+// initialize PWM sound output (must be re-initialized after changing CLK_SYS system clock)
+void PWMSndInitInternal(uint8_t integer, uint8_t fract) {
     set_volume(load_config_data().volume);
     // sound is OFF
     if (GlobalSoundOff) return;
@@ -116,7 +120,7 @@ void PWMSndInit() {
     // set clock divider
     //  125 MHz: 125000000/5644800 = 22.144, INT=22, FRAC=2,
     //     real sample rate = 125000000/(22+2/16)/256 = 22069Hz
-    pwm_config_set_clkdiv_int_frac(&config, 22, 2);
+	pwm_config_set_clkdiv_int_frac(&config, integer, fract);
 
     // set period to 256 cycles
     pwm_config_set_wrap(&config, PWMSND_TOP);

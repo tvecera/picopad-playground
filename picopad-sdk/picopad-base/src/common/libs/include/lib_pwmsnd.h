@@ -55,6 +55,8 @@ extern int SoundVol[USE_PWMSND]; // sound volume (SNDINT = normal)
 // initialize PWM sound output (must be re-initialized after changing CLK_SYS system clock)
 void PWMSndInit();
 
+void PWMSndInitInternal(uint8_t integer, uint8_t fract);
+
 // terminate PWM sound output
 void PWMSndTerm();
 
