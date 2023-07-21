@@ -36,6 +36,8 @@
  */
 static uint8_t audio_mem[AUDIO_MEM_SIZE];
 
+static uint16_t samplesCount = 0;
+
 struct chan_len_ctr {
     uint8_t load;
     unsigned enabled : 1;
@@ -365,10 +367,12 @@ static void update_noise(int16_t *samples)
 /**
  * SDL2 style audio callback function.
  */
-void audio_callback(void *userdata, int16_t *stream, size_t len)
+uint16_t audio_callback(void *userdata, int16_t *stream, size_t len)
 {
     /* Appease unused variable warning. */
     (void)userdata;
+	uint16_t result = samplesCount;
+	samplesCount = 0;
 
     memset(stream, 0, len);
 
@@ -376,6 +380,8 @@ void audio_callback(void *userdata, int16_t *stream, size_t len)
     update_square(stream, 1);
     //update_wave(stream);
     //update_noise(stream);
+
+	return samplesCount;
 }
 
 static void chan_trigger(uint_fast8_t i)
@@ -458,6 +464,7 @@ void audio_write(const uint16_t addr, const uint8_t val)
 {
     /* Find sound channel corresponding to register address. */
     uint_fast8_t i;
+	samplesCount++;
 
     if(addr == 0xFF26)
     {

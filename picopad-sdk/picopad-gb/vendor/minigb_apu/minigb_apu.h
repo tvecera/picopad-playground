@@ -30,7 +30,7 @@ extern "C" {
  * Fill allocated buffer "data" with "len" number of 32-bit floating point
  * samples (native endian order) in stereo interleaved format.
  */
-void audio_callback(void *ptr, int16_t *data, size_t len);
+uint16_t audio_callback(void *ptr, int16_t *data, size_t len);
 
 /**
  * Read audio register at given address "addr".
