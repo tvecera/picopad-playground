@@ -6,7 +6,7 @@
 	url = https://github.com/dangarbri/pico-distance-sensor
 [submodule "picopad-sdk/picopad-base/src/vendor/hagl_hal"]
 	path = picopad-sdk/picopad-base/src/vendor/hagl_hal
-	url = git@github.com:tuupola/hagl_pico_mipi.git
+	url = https://github.com/tuupola/hagl_pico_mipi.git
 [submodule "picopad-sdk/picopad-base/src/vendor/hagl"]
 	path = picopad-sdk/picopad-base/src/vendor/hagl
-	url = git@github.com:tuupola/hagl.git
+	url = https://github.com/tuupola/hagl.git
