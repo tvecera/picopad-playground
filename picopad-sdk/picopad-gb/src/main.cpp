@@ -1,5 +1,7 @@
 // Experimental FULL GBC support
-#define PEANUT_FULL_GBC_SUPPORT 0
+#ifndef PEANUT_FULL_GBC_SUPPORT
+	#define PEANUT_FULL_GBC_SUPPORT 0
+#endif
 #if PEANUT_FULL_GBC_SUPPORT
 // Disable sound
 #define ENABLE_SOUND    1
@@ -35,14 +37,14 @@
 #include "lib_pwmsnd.h"
 
 // Button GPIO mapping
-#define GPIO_BUTTON_UP        4
-#define GPIO_BUTTON_DOWN      5
-#define GPIO_BUTTON_LEFT      3
-#define GPIO_BUTTON_RIGHT     2
-#define GPIO_BUTTON_A         7
-#define GPIO_BUTTON_B         6
-#define GPIO_BUTTON_SELECT    8
-#define GPIO_BUTTON_START     9
+#define GPIO_BUTTON_UP        4 // UP
+#define GPIO_BUTTON_DOWN      5 // DOWN
+#define GPIO_BUTTON_LEFT      3 // LEFT
+#define GPIO_BUTTON_RIGHT     2 // RIGHT
+#define GPIO_BUTTON_A         7 // A
+#define GPIO_BUTTON_B         6 // B
+#define GPIO_BUTTON_SELECT    8 // Y
+#define GPIO_BUTTON_START     9 // X
 
 #if ENABLE_SOUND
 int16_t *stream;
@@ -336,7 +338,6 @@ int main() {
                 PlaySound(monoStream, AUDIO_SAMPLES);
             }
 #endif
-
             // Update gamepad state
             prevGamepadState.up = gbContext.direct.joypad_bits.up;
             prevGamepadState.down = gbContext.direct.joypad_bits.down;
@@ -354,9 +355,10 @@ int main() {
             gbContext.direct.joypad_bits.right = gpio_get(GPIO_BUTTON_RIGHT);
             gbContext.direct.joypad_bits.a = gpio_get(GPIO_BUTTON_A);
             gbContext.direct.joypad_bits.b = gpio_get(GPIO_BUTTON_B);
-            gbContext.direct.joypad_bits.select = gpio_get(GPIO_BUTTON_SELECT);
             gbContext.direct.joypad_bits.start = gpio_get(GPIO_BUTTON_START);
-        } while (KeyGet() != KEY_Y);
+			gbContext.direct.joypad_bits.select = gpio_get(GPIO_BUTTON_SELECT);
+
+        } while (!(gbContext.direct.joypad_bits.a == 0 && gbContext.direct.joypad_bits.b == 0));
 
         // Reset core1 and reset to bootloader
         multicore_reset_core1();

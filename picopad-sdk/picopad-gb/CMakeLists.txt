@@ -9,10 +9,19 @@ set(CMAKE_SIZE ${PICO_TOOLCHAIN_PATH}/bin/arm-none-eabi-size)
 include(pico_sdk_import.cmake)
 include(picopad_base_import.cmake)
 
+# If config.cmake exists, include it
+if(EXISTS "${CMAKE_SOURCE_DIR}/config.cmake")
+    include("${CMAKE_SOURCE_DIR}/config.cmake")
+endif()
+
 project(picopad-gb C CXX ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
+
+if(${ENABLE_GBC_SUPPORT})
+    add_compile_definitions(PEANUT_FULL_GBC_SUPPORT=1)
+endif()
 
 pico_sdk_init()
 

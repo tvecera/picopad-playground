@@ -24,6 +24,20 @@ Unix-like operating systems.
 
 3. The content of the C array must then be copied to the `__in_flash("rom") gameRom[]` array.
 
+## Keys
+
+| Gameboy | Picopad |
+|---------|---------|
+| RIGHT   | RIGHT   |
+| UP      | UP      |
+| LEFT    | LEFT    |
+| DOWN    | DOWN    |
+| A       | A       |
+| B       | B       |
+| START   | X       |
+| SELECT  | Y       |
+| QUIT    | A + B   |
+
 ## Credits
 
 This project is based on the following works:
