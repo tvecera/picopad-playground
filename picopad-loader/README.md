@@ -2,9 +2,13 @@
 
 The main objective was to create an alternative app loader, enabling the launch and upload of programs created using
 various frameworks and SDKs. It primarily supports the Pico SDK C/C++ and Arduino. Additionally, this loader allows you
-to run a modified build of the CircuitPython firmware for Picopad ([https://circuitpython.org/board/pajenicko_picopad/](https://circuitpython.org/board/pajenicko_picopad/)).
+to run a modified build of the CircuitPython firmware for
+Picopad ([https://circuitpython.org/board/pajenicko_picopad/](https://circuitpython.org/board/pajenicko_picopad/)).
 
 Both the loader's code and the sample codes use parts of the original Picopad SDK: https://github.com/Pajenicko/Picopad
+
+Prebuilt version of Pajenicko Picopad CircuitPython, which can be loaded via this custom
+loader: https://github.com/tvecera/picopad-playground/tree/arduino/sdcard/CIRCUIPY
 
 ![](img/picopad-loader.png)
 
