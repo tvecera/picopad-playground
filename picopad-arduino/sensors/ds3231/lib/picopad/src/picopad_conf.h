@@ -8,15 +8,16 @@ extern "C" {
 #endif
 
 #define CONFIG_DATA_SIZE  32    // boot loader resident data
-#define DEFAULT_BRIGHTNESS 5
-#define DEFAULT_VOLUME 5
 
 #define CONFIG_FILE "/picopad.cfg"
 
 struct config_data_t {
 		u8 brightness;
 		u8 volume;
-		u8 reserved[24]; // struct padding
+		u8 screen_sleep;
+		u8 refresh_battery;
+		u8 battery_alarm;
+		u8 reserved[21]; // struct padding
 		u32 crc;
 };
 static_assert(sizeof(struct config_data_t) == CONFIG_DATA_SIZE, "configdata must be CONFIG_DATA_SIZE bytes");
@@ -29,9 +30,11 @@ void save_volume(uint8_t volume);
 
 void save_brightness(uint8_t brightness);
 
-void load_config_from_sd_card();
+void load_config_file();
 
+#if USE_SD
 void save_config_to_file();
+#endif
 
 #ifdef __cplusplus
 }

@@ -16,7 +16,7 @@
 
 #include "picopad.h"
 
-#if USE_FAT	// use FAT file system (lib_fat.c, lib_fat.h)
+#if USE_FAT && USE_SD	// use FAT file system (lib_fat.c, lib_fat.h)
 
 // disk buffer
 ALIGNED u8 DiskBuf[SECT_SIZE];

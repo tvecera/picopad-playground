@@ -16,7 +16,7 @@
 
 // Currently is FAT system connected to SD-card interface (lib_sd.c, lib_sd.h)
 
-#if USE_FAT	// use FAT file system (lib_fat.c, lib_fat.h)
+#if USE_FAT	&& USE_SD // use FAT file system (lib_fat.c, lib_fat.h)
 
 #ifndef _FAT_H
 #define _FAT_H

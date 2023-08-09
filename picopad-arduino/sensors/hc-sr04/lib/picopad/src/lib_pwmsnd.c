@@ -96,7 +96,7 @@ void PWMSndInit() {
 
 // initialize PWM sound output (must be re-initialized after changing CLK_SYS system clock)
 void PWMSndInitInternal(uint8_t integer, uint8_t fract) {
-    set_volume(load_config_data().volume);
+	SetVolume(load_config_data().volume);
     // sound is OFF
     if (GlobalSoundOff) return;
 
@@ -306,7 +306,7 @@ float linear_to_logarithmic(float i) {
     return 0.1f * exp(log(10) * i / 5);
 }
 
-void set_volume(u8 value) {
+void SetVolume(u8 value) {
     if (value > 5) value = 5;
     GlobalSoundOff = value == 0;
     GlobalVolume = linear_to_logarithmic(value);

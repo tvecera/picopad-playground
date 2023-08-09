@@ -46,8 +46,6 @@ static uint8_t gameRam[65536];
 
 // LCD Line status
 semaphore_t lcdLineStatus;
-// Repeating timer for periodical call KeyScan
-struct repeating_timer timer0;
 
 // Previous joypad state
 static struct {
@@ -80,6 +78,21 @@ static uint8_t pixelBuffer[LCD_WIDTH];
 
 // GameBoy context
 static struct gb_s gbContext;
+
+void DrawClearCol(u16 col) {
+	DispWindow(0,WIDTH, 0, HEIGHT);
+	u16 row[WIDTH] = {0};
+	memset(&row, col, WIDTH);
+
+	for (int i = 0; i < HEIGHT; i++)
+		DispWriteData(&row, WIDTH * 2);
+}
+
+// clear canvas with black color
+void DrawClear()
+{
+	DrawClearCol(0);
+}
 
 // GameBoy ROM read function
 uint8_t gbRomRead(struct gb_s *gb, const uint_fast32_t addr) {
@@ -283,11 +296,10 @@ void setup(void) {
 		audio_init();
 	}
 #endif
-	add_repeating_timer_us(500, repeating_timer_callback, nullptr, &timer0);
 }
 
 // Main game loop
-[[noreturn]] void loop() {
+void loop() {
 	// Turn ON Peanut GB frame skip
 	// You should change based on ROM
 #if PEANUT_FULL_GBC_SUPPORT
@@ -358,5 +370,4 @@ void setup(void) {
 		}
 
 	} while (true);
-
 }

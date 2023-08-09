@@ -16,16 +16,22 @@
 
 #include "picopad.h"
 
+// Repeating timer for periodical call KeyScan
+struct repeating_timer timer0;
+
+bool repeating_timer_callback(struct repeating_timer *t) {
+	KeyScan();
+	return true;
+}
+
 // Device init
-void DeviceInit()
-{
+void DeviceInit() {
 	// initialize LEDs
 	LedInit();
 
 #if USE_SD
 	SDInit();
 	sleep_ms(100);
-	load_config_from_sd_card();
 #else
 	// Disable SD LED
 	gpio_init(SD_CS);
@@ -33,7 +39,10 @@ void DeviceInit()
 	gpio_set_dir(SD_CS, GPIO_OUT);
 #endif
 
-#if USE_DRAWTFT && USE_ST7789
+	// Try to load config file from SD card
+	load_config_file();
+
+#if USE_ST7789
 	// initialize display
 	DispInit(1);
 #endif
@@ -48,6 +57,10 @@ void DeviceInit()
 	// initialize PWM sound output (must be re-initialized after changing CLK_SYS system clock)
 	PWMSndInit();
 #endif
+
+#if SYSTICK_KEYSCAN
+	add_repeating_timer_us(500, repeating_timer_callback, NULL, &timer0);
+#endif
 }
 
 // Device terminate
@@ -55,7 +68,7 @@ void DeviceTerm() {
 	// terminate LEDs
 	LedTerm();
 
-#if USE_DRAWTFT && USE_ST7789
+#if USE_ST7789
 	// terminate display
 	DispTerm();
 #endif
@@ -66,13 +79,17 @@ void DeviceTerm() {
 	// terminate battery measurement
 	BatTerm();
 
-#if USE_PWMSND	// use PWM sound output; set 1.. = number of channels (lib_pwmsnd.c, lib_pwmsnd.h)
+#if USE_PWMSND  // use PWM sound output; set 1.. = number of channels (lib_pwmsnd.c, lib_pwmsnd.h)
 	// terminate PWM sound output
 	PWMSndTerm();
 #endif
 
-#if USE_SD		// use SD card (lib_sd.c, lib_sd.h)
+#if USE_SD    // use SD card (lib_sd.c, lib_sd.h)
 	// terminate SD card interface
 	SDTerm();
+#endif
+
+#if SYSTICK_KEYSCAN
+	cancel_repeating_timer(&timer0);
 #endif
 }

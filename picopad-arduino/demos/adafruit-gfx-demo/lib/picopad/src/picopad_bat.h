@@ -45,6 +45,9 @@ int GetBatInt();
 // terminate battery measurement
 void BatTerm();
 
+// Battery level from 0 .. 12
+u8 BatLevel();
+
 #ifdef __cplusplus
 }
 #endif

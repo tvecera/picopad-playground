@@ -21,35 +21,7 @@ extern "C" {
 #include "pico/sync.h"
 #include <math.h>
 #include <string.h>
-
-// Use ST7789 driver. Set to 0 to disable.
-#ifndef USE_ST7789
-#define USE_ST7789    1
-#endif
-
-// Use DRAWTFT driver. Set to 0 to disable.s
-#ifndef USE_DRAWTFT
-#define USE_DRAWTFT  1
-#endif
-
-// PWM sound
-#define USE_PWMSND  0  // 4 - use PWM sound output; set 1.. = number of channels (lib_pwmsnd.c, lib_pwmsnd.h)
-
-#ifndef USE_FAT
-#define USE_FAT 1
-#endif
-
-#ifndef USE_SD
-#define USE_SD 1
-#endif
-
-#ifndef USE_CRC
-#define USE_CRC 1
-#endif
-
-#ifndef USE_CONFIG
-#define USE_CONFIG 1
-#endif
+#include "user_config.h"
 
 #ifndef PWMSND_GPIO
 #define PWMSND_GPIO  15    // PWM output GPIO pin (0..29)
@@ -69,10 +41,6 @@ extern "C" {
 
 #ifndef DISP_SPI
 #define DISP_SPI  spi0    // SPI used for display
-#endif
-
-#ifndef DISP_SPI_BAUD
-#define DISP_SPI_BAUD  24000000  // SPI baudrate (max. CLK_PERI/2 = 24 MHz, absolute max. 62.5 MHz)
 #endif
 
 #ifndef DISP_BLK_PIN
@@ -187,10 +155,6 @@ extern "C" {
 
 #ifndef KEY_REP_TIME2
 #define KEY_REP_TIME2  100  // delta time of repeat press in [ms] (max 500)
-#endif
-
-#ifndef SYSTICK_KEYSCAN
-#define SYSTICK_KEYSCAN    0  // call KeyScan() function from SysTick system timer
 #endif
 
 #define BOOTLOADER_SIZE  0x30000    // size of boot loader 196608

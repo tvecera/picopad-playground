@@ -26,13 +26,14 @@ extern "C" {
 // DISP_SPI_BAUD	24000000
 // send data: 320x240x2 = 153600 B = 1 228 800 bits
 // transfer time: 51 ms, real time: 70 ms
-#define DISP_FRAME_MS (320*240*2*9*1000/DISP_SPI_BAUD)	// transfer time of whole frame in [ms]
+#define DISP_FRAME_MS (320*240*2*9*1000/DISP_SPI_BAUD)  // transfer time of whole frame in [ms]
 
+extern u8 DispRot;  // current display rotation
+extern u16 DispWidth, DispHeight; // current display size
+
+#if USE_DRAWTFT
 // frame buffer in RGB 5-6-5 pixel format
 extern ALIGNED u16 FrameBuf[FRAMESIZE];
-
-extern u8 DispRot;	// current display rotation
-extern u16 DispWidth, DispHeight; // current display size
 
 // dirty window to update
 extern int DispDirtyX1, DispDirtyX2, DispDirtyY1, DispDirtyY2;
@@ -58,6 +59,12 @@ void DispAutoUpdate(u32 ms);
 // refresh update all display
 void DispUpdateAll();
 
+#else
+
+void DispClear();
+
+#endif
+
 // initialize display
 //  rot ... rotation mode
 //		0 Portrait
@@ -69,9 +76,17 @@ void DispInit(u8 rot);
 // terminate display
 void DispTerm();
 
+void DispWindow(u16 x1, u16 x2, u16 y1, u16 y2);
+
 void DispWriteData(const void *data, int len);
 
-void set_brightness(u8 value);
+void SetBrightness(u8 value);
+
+void DispSleepEnable();
+
+void DispSleepDisable();
+
+void DispOnOff(bool on);
 
 #ifdef __cplusplus
 }

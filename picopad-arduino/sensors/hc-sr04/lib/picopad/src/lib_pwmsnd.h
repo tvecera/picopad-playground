@@ -101,7 +101,7 @@ void GlobalSoundSetOff();
 // global sound set ON
 void GlobalSoundSetOn();
 
-void set_volume(u8 value);
+void SetVolume(u8 value);
 
 #ifdef __cplusplus
 }

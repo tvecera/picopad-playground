@@ -71,3 +71,13 @@ void BatTerm()
 	// disable ADC
 	ADC_Disable();
 }
+
+u8 BatLevel()
+{
+	float bat = GetBat();
+	int i = (bat - BATTERY_EMPTY) / (BATTERY_FULL - BATTERY_EMPTY) * 12;
+	if (i < 0) i = 0;
+	if (i > 12) i = 12;
+
+	return i;
+}

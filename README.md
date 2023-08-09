@@ -3,7 +3,7 @@
 **Clone repository**
 
 ```bash
-  git clone --recurse-submodules https://github.com/tvecera/picopad-playground
+  git clone https://github.com/tvecera/picopad-playground
 ```
 
 ## PyPicoPadImg Generator
@@ -32,7 +32,7 @@ display code using the API of the Picopad SDK.
 
 The code of this emulator is based on the original Picopad SDK source code.
 
-## Picopad SDK Pico SDK Fork
+## Custom Picopad Loader
 
 Fork of the Picopad SDK, built on the Pico SDK. The goal was to add the capability to use libraries for the Pico SDK 
 on the Picopad.
