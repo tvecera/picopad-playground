@@ -1,6 +1,7 @@
 // Includes necessary libraries
 #include "pico/printf.h"
 #include <string.h>
+#include "stdio.h"
 
 // Graphics and display libraries
 #include "st7789.h"
@@ -44,7 +45,11 @@ int main() {
 
     // Prepares text variables for the sensor's address and temperature readings
     char addressText[40];
-    char temperatureText[10];
+    char temperatureText[15];
+    //char temperature[8];
+    char fahrentemperature[15];
+    char kelvintemperature[15];
+    //char addressText[40];
     bool connected;
 
     do {
@@ -69,14 +74,24 @@ int main() {
             wait(1000);
             float temperature = one_wire.temperature(address) + TEMP_CORRECTION;
 
-            // Formats the sensor address and temperature reading into text strings
-            snprintf(addressText, sizeof(addressText), "Address: 0x%llx", addressValue);
-            snprintf(temperatureText, sizeof(temperatureText), "%3.1f`C", temperature);
+            float celsius = temperature;
+            float fahrenheit = (celsius * 9.0f / 5.0f) + 32.0f;
+            float kelvin = celsius + 273.15f;
 
+            // Formats the sensor address and temperature reading into text strings
+            //snprintf(temperature, sizeof(temperature), "%.1f `C", 25.4f);
+            snprintf(temperatureText, sizeof(temperatureText), "%3.1f `C", celsius);
+            snprintf(fahrentemperature, sizeof(fahrentemperature), "%.1f `F", fahrenheit);
+            snprintf(kelvintemperature, sizeof(kelvintemperature), "%.1f K", kelvin);      
+            //snprintf(addressText, sizeof(addressText), "Address: 0x28b8e5c5802206e7");
+            snprintf(addressText, sizeof(addressText), "Address: 0x%llx", addressValue);
+            
             // Draws the temperature reading and sensor address on the display
             pDrawFont = FontBoldB8x16;
             DrawFontHeight = 16;
-            DrawText2(temperatureText, 130, 80, COL_WHITE);
+            DrawText2(temperatureText, 140, 65, COL_WHITE);
+            DrawText2(fahrentemperature, 140, 95, COL_WHITE);
+            DrawText2(kelvintemperature, 140, 125, COL_WHITE);
 
             pDrawFont = FontBold8x8;
             DrawFontHeight = 8;
