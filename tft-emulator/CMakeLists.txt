@@ -3,9 +3,9 @@ project(tft-emulator C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# set(SFML_STATIC_LIBRARIES TRUE)
+set(SFML_STATIC_LIBRARIES TRUE)
 
-# set(SFML_DIR "c:/picopad/SFML-2.6.0/lib/cmake/SFML")
+set(SFML_DIR "C:/Development/sfml/lib/cmake/SFML")
 
 add_executable(tft-emulator main.cpp)
 

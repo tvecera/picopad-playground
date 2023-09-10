@@ -7,7 +7,7 @@
 #include "st7789.h"
 #include "lib_drawtft.h"
 
-// Pico Pad specific libraries
+// Picopad specific libraries
 #include "picopad_init.h"
 #include "picopad_key.h"
 #include "picopad_fonts.h"

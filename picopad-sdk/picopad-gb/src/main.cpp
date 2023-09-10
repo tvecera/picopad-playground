@@ -1,6 +1,6 @@
 // Experimental FULL GBC support
 #ifndef PEANUT_FULL_GBC_SUPPORT
-	#define PEANUT_FULL_GBC_SUPPORT 0
+	#define PEANUT_FULL_GBC_SUPPORT 1
 #endif
 #if PEANUT_FULL_GBC_SUPPORT
 // Disable sound

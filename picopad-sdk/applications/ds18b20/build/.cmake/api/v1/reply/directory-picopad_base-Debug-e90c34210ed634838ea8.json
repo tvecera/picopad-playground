@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "picopad_base",
+		"source" : "C:/Development/sdk/netczech/picopad-playground/picopad-sdk/picopad-base"
+	}
+}

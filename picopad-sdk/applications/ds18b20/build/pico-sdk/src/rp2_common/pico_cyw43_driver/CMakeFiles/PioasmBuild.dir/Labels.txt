@@ -1,0 +1,13 @@
+# Target labels
+ PioasmBuild
+# Source files and their labels
+C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pico-sdk/src/rp2_common/pico_cyw43_driver/CMakeFiles/PioasmBuild
+C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pico-sdk/src/rp2_common/pico_cyw43_driver/CMakeFiles/PioasmBuild.rule
+C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pico-sdk/src/rp2_common/pico_cyw43_driver/CMakeFiles/PioasmBuild-complete.rule
+C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/PioasmBuild-stamp/PioasmBuild-build.rule
+C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/PioasmBuild-stamp/PioasmBuild-configure.rule
+C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/PioasmBuild-stamp/PioasmBuild-download.rule
+C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/PioasmBuild-stamp/PioasmBuild-install.rule
+C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/PioasmBuild-stamp/PioasmBuild-mkdir.rule
+C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/PioasmBuild-stamp/PioasmBuild-patch.rule
+C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pico-sdk/src/rp2_common/pico_cyw43_driver/pioasm/src/PioasmBuild-stamp/PioasmBuild-update.rule
