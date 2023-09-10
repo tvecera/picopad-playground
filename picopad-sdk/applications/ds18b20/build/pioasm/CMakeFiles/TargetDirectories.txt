@@ -1,3 +1,0 @@
-C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pioasm/CMakeFiles/pioasm.dir
-C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pioasm/CMakeFiles/edit_cache.dir
-C:/Development/sdk/netczech/picopad-playground/picopad-sdk/applications/ds18b20/build/pioasm/CMakeFiles/rebuild_cache.dir
