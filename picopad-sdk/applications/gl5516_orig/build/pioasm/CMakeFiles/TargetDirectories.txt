@@ -1,3 +1,0 @@
-C:/Development/sdk/picopad-playground/picopad-sdk/applications/gl5516/build/pioasm/CMakeFiles/pioasm.dir
-C:/Development/sdk/picopad-playground/picopad-sdk/applications/gl5516/build/pioasm/CMakeFiles/edit_cache.dir
-C:/Development/sdk/picopad-playground/picopad-sdk/applications/gl5516/build/pioasm/CMakeFiles/rebuild_cache.dir
