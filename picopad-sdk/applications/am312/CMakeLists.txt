@@ -9,7 +9,7 @@ set(CMAKE_SIZE ${PICO_TOOLCHAIN_PATH}/arm-none-eabi-size)
 include(pico_sdk_import.cmake)
 include(picopad_base_import.cmake)
 
-project(pir C CXX ASM)
+project(am312 C CXX ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
