@@ -2,7 +2,7 @@
  * Original code from: https://www.hackster.io/brzi/google-chrome-dinosaur-game-on-3-4-tft-c8ad88
  *
  * Display configuration - If you want to use an alternative graphic or TFT driver library, change the following
- * defines to 0 in the picopad.h header - lib/picopad/src/picopad.h
+ * defines to 0 in the picopad.h header - lib/picopad/include/picopad.h
  *
  * Use ST7789 driver. Set to 0 to disable.
  *
@@ -47,7 +47,7 @@ DinoGame game(tft);
 void wait(uint16_t ms) {
 	for (uint16_t i = 0; i < ms / 10; i++) {
 		sleep_ms(10);
-		if (KeyGet() == KEY_Y) ResetToBootLoader();
+		if (KeyGet() == KEY_Y) reset_to_boot_loader();
 	}
 }
 
@@ -58,7 +58,7 @@ void setup(void) {
 	Serial.println("Test Adafruit GFX application starting...");
 
 	// Initialize the device and display
-	DeviceInit();
+	device_init();
 
 	tft.init(240, 320, SPI_MODE2);
 	tft.setRotation(3);
@@ -91,7 +91,7 @@ void loop() {
 			game.duck();
 			break;
 		case KEY_Y:
-			ResetToBootLoader();
+			reset_to_boot_loader();
 			break;
 		default:
 			game.stand();
@@ -100,7 +100,7 @@ void loop() {
 	while (game.isGameOver()) {
 		ch = KeyGet();
 		if (ch == KEY_Y)
-			ResetToBootLoader();
+			reset_to_boot_loader();
 		if (ch == KEY_A) {
 			game.newGame();
 #ifdef USE_NOINTERNET

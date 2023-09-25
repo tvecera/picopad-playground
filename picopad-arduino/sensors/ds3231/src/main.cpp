@@ -1,6 +1,5 @@
 #include "Arduino.h"
 #include "picopad.h"
-#include "fonts/picopad_fonts.h"
 #include "images.h"
 #include "hardware/rtc.h"
 #include "SimpleDS3231.hpp"
@@ -40,7 +39,7 @@ typedef struct {
 void wait(uint16_t ms) {
 	for (uint16_t i = 0; i < ms / 10; i++) {
 		sleep_ms(10);
-		if (KeyGet() == KEY_Y) ResetToBootLoader();
+		if (KeyGet() == KEY_Y) reset_to_boot_loader();
 	}
 }
 
@@ -185,7 +184,7 @@ void setup() {
 	Serial.println("DS3231 module application starting...");
 
 	// Initialize the device and display
-	DeviceInit();
+	device_init();
 	DrawClear();
 	DispUpdate();
 

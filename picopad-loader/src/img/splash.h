@@ -1,3 +1,6 @@
+#ifndef PICOPAD_LOADER_SPLASH_H
+#define PICOPAD_LOADER_SPLASH_H
+
 #include "picopad.h"
 
 // format: compressed 8-bit paletted pixel graphics
@@ -570,3 +573,4 @@ const u8 SplashImg[8707] __attribute__ ((aligned(4))) = {
         0x00, 0xFF, 0x00, 0xFF, 0x00, 0xB9, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xB9, 0x00, 0xFF, 0x00, 0xFF,
         0x00, 0xB9, 0x00,
 };
+#endif //PICOPAD_LOADER_SPLASH_H

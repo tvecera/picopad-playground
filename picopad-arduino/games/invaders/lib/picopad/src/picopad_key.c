@@ -213,3 +213,16 @@ void KeyWaitNoPressed()
 {
 	while (!KeyNoPressed()) {}
 }
+
+// Function to delay for a specified number of milliseconds
+// Additionally, it checks for a key press every 10 milliseconds.
+// If the key is pressed, return pressed key.
+char wait_for_keypress(uint16_t ms) {
+	char ch = NOKEY;
+	for (uint16_t i = 0; i < ms / 10; i++) {
+		sleep_ms(10);
+		ch = KeyGet();
+		if (ch != NOKEY) return ch;
+	}
+	return ch;
+}

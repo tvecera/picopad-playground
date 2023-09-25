@@ -7,7 +7,6 @@
 
 #include "Arduino.h"
 #include "picopad.h"
-#include "fonts/picopad_fonts.h"
 #include <PWMAudio.h>
 #include "wav.h"
 
@@ -28,7 +27,7 @@ char ch;
 void wait(uint16_t ms) {
 	for (uint16_t i = 0; i < ms / 10; i++) {
 		sleep_ms(10);
-		if (KeyGet() == KEY_Y) ResetToBootLoader();
+		if (KeyGet() == KEY_Y) reset_to_boot_loader();
 	}
 }
 
@@ -51,10 +50,12 @@ void setup() {
 	Serial.println("Test PWM audio application starting...");
 
 	// Initialize the device and display
-	DeviceInit();
+	device_init();
 	DrawClear();
 	DispUpdate();
 	SelFont8x8();
+
+	DrawText("PWMAudio library test", WIDTH / 2 - 10, HEIGHT / 2 - 4, COL_WHITE);
 
 	pwm.onTransmit(cb);
 	pwm.begin(44100);
@@ -64,5 +65,5 @@ void setup() {
 void loop() {
 	ch = KeyGet();
 	if (ch == KEY_Y)
-		ResetToBootLoader();
+		reset_to_boot_loader();
 }

@@ -259,7 +259,7 @@ void testlines(uint16_t color) {
 void wait(uint16_t ms) {
 	for (uint16_t i = 0; i < ms / 10; i++) {
 		sleep_ms(10);
-		if (KeyGet() == KEY_Y) ResetToBootLoader();
+		if (KeyGet() == KEY_Y) reset_to_boot_loader();
 	}
 }
 
@@ -270,7 +270,7 @@ void setup(void) {
 	Serial.println("Test Adafruit GFX application starting...");
 
 	// Initialize the device and display
-	DeviceInit();
+	device_init();
 
 	tft.init(240, 320, SPI_MODE2);
 	tft.setRotation(3);

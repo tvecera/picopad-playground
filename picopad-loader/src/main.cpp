@@ -1,26 +1,31 @@
-// ****************************************************************************
-//
-//                             PicoPad Boot Loader
-//
-// ****************************************************************************
-// Based on the code taken from Picopad SDK
-// https://github.com/pajenicko/picopad
+/**
+* MIT License
+*
+* Copyright (c) 2023 Tomas Vecera, tomas@vecera.dev
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+* documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+* rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+* persons to whom the Software is furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+* Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+* WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+* COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+* OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
-#include "Arduino.h"
+#include <Arduino.h>
+#include "include.h"
+
 #include "RP2040.h"
 #include "hardware/resets.h"
-#include "picopad.h"
-#include "fonts/picopad_fonts.h"
-#include "img/icons.h"
-#include "img/splash.h"
-#include "snd/click.h"
-#include "snd/battery.h"
-#include "system_info.h"
-#include "sdk_flash.h"
-#include "file_manager.h"
 
 #define BAR_TIMEOUT 3000000
 #define MAX_VOLUME 5
+#define MAX_BRIGHTNESS 5
 
 #define BAR_COLOR RGBTO16(100, 103, 125)
 #define BAR_STEP_HEIGHT 24
@@ -38,21 +43,21 @@ event_t event = UPDATE_SCREEN;
 bool show_volume = true;
 bool show_screen_brightness = true;
 bool speaker_enabled = true;
-
 uint64_t bar_next_timeout = 0;
-uint64_t sleep_next_timeout = 0;
 
-int volume = 5;
-int brightness = 5;
-int battery_alarm = 0;
-int64_t screen_sleep = 0;
-int64_t refresh_battery = 0;
+static int volume = 5;
+static int brightness = 5;
+static int battery_alarm = 0;
+static int refresh_battery = 0;
+static bool update_battery_icon = true;
 
 // Repeating timer for periodical call update battery
 struct repeating_timer timer1;
+// Timer for stop alarm sound
+struct repeating_timer timer2;
 
 // color
-const u16 battery_icon_color[3] = {
+const uint16_t battery_icon_color[3] = {
 		COL_RED,
 		RGBTO16(255, 120, 0),
 		RGBTO16(0, 240, 0),
@@ -75,17 +80,17 @@ static void reset_peripherals() {
 }
 
 static void jump_to_vtor() {
-	u32 vtor = XIP_BASE + WRITE_ADDR_MIN;
+	uint32_t vtor = XIP_BASE + WRITE_ADDR_MIN;
 	// Derived from the Leaf Labs Cortex-M3 bootloader.
 	// Copyright (c) 2010 LeafLabs LLC.
 	// Modified 2021 Brian Starkey <stark3y@gmail.com>
 	// Originally under The MIT License
-	u32 reset_vector = *(volatile u32 *) (vtor + 0x04);
+	uint32_t reset_vector = *(volatile uint32_t *) (vtor + 0x04);
 
-	SCB->VTOR = (volatile u32) (vtor);
+	SCB->VTOR = (volatile uint32_t) (vtor);
 
 	asm volatile("msr msp, %0"::"g"
-	(*(volatile u32 *) vtor));
+	(*(volatile uint32_t *) vtor));
 	asm volatile("bx %0"::"r" (reset_vector));
 }
 
@@ -99,25 +104,37 @@ static void jump_to_vtor() {
 	while (true);
 }
 
-bool update_battery_info(struct repeating_timer *t) {
+int draw_battery_info_icon() {
 	int i = BatLevel();
 
-	u16 col;
-	if (i <= 4) {
-		col = battery_icon_color[0];
-	} else if (i <= 8) {
-		col = battery_icon_color[1];
-	} else {
-		col = battery_icon_color[2];
+	if (update_battery_icon) {
+		uint16_t col;
+		if (i <= 4) {
+			col = battery_icon_color[0];
+		} else if (i <= 8) {
+			col = battery_icon_color[1];
+		} else {
+			col = battery_icon_color[2];
+		}
+
+		DrawImgRle(BatteryIconImg, BatteryIconImg_Pal, 6, 0, 30, 20);
+		DrawRect(12, 12, 2 + i, 6, col);
 	}
 
-	DrawImgRle(BatteryIconImg, BatteryIconImg_Pal, 6, 0, 30, 20);
-	DrawRect(12, 12, 2 + i, 6, col);
+	return i;
+}
 
-	if (battery_alarm && i <= BATTERY_ALARM_THRESHOLD)
-		PLAYSOUND(BatteryLowSnd);
+bool update_battery_info(struct repeating_timer *t) {
+	int i = draw_battery_info_icon();
+	bool alarm = battery_alarm && i <= BATTERY_ALARM_THRESHOLD;
 
-	if (t != nullptr)
+#if USE_PWMSND
+	if (alarm) {
+		play_battery_alarm(BATTERY_ALARM_DURATION);
+	}
+#endif
+
+	if (update_battery_icon || alarm)
 		DispUpdate();
 
 	return true;
@@ -143,22 +160,10 @@ void show_bar(int x, int y, int value, int color = BAR_COLOR) {
 	}
 }
 
-void sleep_display() {
-	LedFlip(LED1);
-	DispOnOff(false);
-	while (KeyGet() == NOKEY);
-	DispOnOff(true);
-	LedFlip(LED1);
-}
-
-void toggle_repeating_timer(bool cancel = false) {
-	if (cancel) {
+void toggle_repeating_timer() {
+	if (refresh_battery > 0) {
 		cancel_repeating_timer(&timer1);
-	} else {
-		if (refresh_battery > 0) {
-			refresh_battery = refresh_battery * 30 * 1000 * 1000;
-			add_repeating_timer_us(refresh_battery, update_battery_info, nullptr, &timer1);
-		}
+		add_repeating_timer_us(refresh_battery * 30 * 1000 * 1000, update_battery_info, nullptr, &timer1);
 	}
 }
 
@@ -167,10 +172,20 @@ void setup() {
 	// Initialize serial communication
 	Serial.begin(115200);
 	delay(100);
-	Serial.println("SCD41 sensor application starting...");
+
+	// For testing
+//	gpio_init(16);
+//	gpio_set_dir(16, GPIO_OUT);
+//	gpio_put(16, true);
+//	gpio_init(DISP_CS_PIN);
+//	gpio_set_dir(DISP_CS_PIN, GPIO_OUT);
+//	gpio_put(DISP_CS_PIN, true);
+//	gpio_init(SD_CS);
+//	gpio_set_dir(SD_CS, GPIO_OUT);
+//	gpio_put(SD_CS, true);
 
 	// Initialize the device and display
-	DeviceInit();
+	device_init();
 	DrawClear();
 	DispUpdate();
 
@@ -179,15 +194,11 @@ void setup() {
 	volume = config_data.volume;
 	brightness = config_data.brightness;
 	refresh_battery = config_data.refresh_battery;
-	screen_sleep = config_data.screen_sleep;
 	battery_alarm = config_data.battery_alarm;
-
-	// check loader magic
-	watchdog_hw->scratch[4] = 0;
-
 	speaker_enabled = volume != 0;
-	screen_sleep = screen_sleep == 0 ? INT64_MAX : screen_sleep * 120 * 1000 * 1000;
-	sleep_next_timeout = time_us_64() + screen_sleep;
+
+	// Init screensaver
+	screensaver_init();
 
 	toggle_repeating_timer();
 
@@ -196,6 +207,7 @@ void setup() {
 
 // Main loop function
 void loop() {
+	char ch = NOKEY;
 	uint64_t current_time = time_us_64();
 
 	if (bar_next_timeout <= current_time) {
@@ -209,12 +221,6 @@ void loop() {
 		}
 	}
 
-	if (!event && sleep_next_timeout <= current_time) {
-		sleep_display();
-		sleep_next_timeout = time_us_64() + screen_sleep;
-		event = UPDATE_SCREEN;
-	}
-
 	if (event) {
 		SelFont8x8();
 		DrawImgRle(SplashImg, SplashImg_Pal, 0, 0, WIDTH, HEIGHT);
@@ -225,12 +231,15 @@ void loop() {
 		} else {
 			DrawImgRle(SpeakerOffImg, SpeakerOffImg_Pal, 295, 5, 20, 20);
 		}
-		update_battery_info(nullptr);
+
+		draw_battery_info_icon();
 
 		if (show_volume) {
 			show_bar(292, 40, volume);
 			DrawImgRle(SpeakerBarImg, SpeakerBarImg_Pal, 292, 165, 18, 18);
-			PLAYSOUND(ClickSnd);
+#if USE_PWMSND
+			play_click();
+#endif
 		}
 		if (show_screen_brightness) {
 			show_bar(10, 40, brightness);
@@ -241,19 +250,24 @@ void loop() {
 		event = NONE;
 	}
 
-	// keyboard service
-	switch (KeyGet()) {
+	// Keyboard events
+	ch = screensaver_reset_timer(KeyGet());
+	switch (ch) {
 
 		case KEY_UP: {
-			if (volume < MAX_VOLUME) {
-				volume++;
-			}
+			volume = volume < MAX_VOLUME ? volume + 1 : MAX_VOLUME;
 			if (!speaker_enabled) {
 				speaker_enabled = true;
+#if USE_PWMSND
 				GlobalSoundSetOn();
+#endif
 			}
 			bar_next_timeout = time_us_64() + BAR_TIMEOUT;
+#if USE_PWMSND
 			SetVolume(volume);
+#else
+			save_volume(volume);
+#endif
 			show_volume = true;
 			show_screen_brightness = false;
 			event = UPDATE_SCREEN;
@@ -266,10 +280,16 @@ void loop() {
 			}
 			if (volume == 0) {
 				speaker_enabled = false;
+#if USE_PWMSND
 				GlobalSoundSetOff();
+#endif
 			}
 			bar_next_timeout = time_us_64() + BAR_TIMEOUT;
+#if USE_PWMSND
 			SetVolume(volume);
+#else
+			save_volume(volume);
+#endif
 			show_volume = true;
 			show_screen_brightness = false;
 			event = UPDATE_SCREEN;
@@ -277,11 +297,9 @@ void loop() {
 		}
 
 		case KEY_RIGHT: {
-			if (brightness < MAX_VOLUME) {
-				brightness++;
-			}
+			brightness = brightness < MAX_BRIGHTNESS ? brightness + 1 : MAX_BRIGHTNESS;
 			bar_next_timeout = time_us_64() + BAR_TIMEOUT;
-			SetBrightness(brightness);
+			SetBrightness(brightness, true);
 			show_volume = false;
 			show_screen_brightness = true;
 			event = UPDATE_SCREEN;
@@ -293,7 +311,7 @@ void loop() {
 				brightness--;
 			}
 			bar_next_timeout = time_us_64() + BAR_TIMEOUT;
-			SetBrightness(brightness);
+			SetBrightness(brightness, true);
 			show_volume = false;
 			show_screen_brightness = true;
 			event = UPDATE_SCREEN;
@@ -301,35 +319,48 @@ void loop() {
 		}
 
 		case KEY_X: {
+			update_battery_icon = false;
 			show_system_info();
 			KeyFlush();
 			event = UPDATE_SCREEN;
+			update_battery_icon = true;
 			break;
 		}
 
 			// Reset to USB BOOT
 		case KEY_Y: {
-			reset_to_bootsel();
-			break;
-		}
-
-		case KEY_B: {
-			toggle_repeating_timer(true);
-			bool result = show_file_manager();
-			if (result) {
+			update_battery_icon = false;
+			if (show_bootsel_dialog() == RESULT_OK) {
 				DrawClear();
-				DeviceTerm();
+				device_terminate();
 				handle_go();
 			}
 			KeyFlush();
 			event = UPDATE_SCREEN;
-			toggle_repeating_timer();
+			update_battery_icon = true;
 			break;
 		}
 
-		case KEY_A:
+		case KEY_B: {
+			update_battery_icon = false;
+			if (show_file_manager() == RESULT_OK) {
+				DrawClear();
+				device_terminate();
+				handle_go();
+			}
+			KeyFlush();
+			event = UPDATE_SCREEN;
+			update_battery_icon = true;
+			break;
+		}
+
+		case KEY_A: {
 			DrawClear();
-			DeviceTerm();
+			device_terminate();
 			handle_go();
+		}
+
+		default:
+			break;
 	}
 }

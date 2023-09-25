@@ -1,5 +1,11 @@
-// Interface and part of the code taken from Picopad SDK
-// https://github.com/pajenicko/picopad
+// Interface and part of the code taken from PicoLibSDK:
+//
+// PicoLibSDK - Alternative SDK library for Raspberry Pico and RP2040
+// Copyright (c) 2023 Miroslav Nemecek, Panda38@seznam.cz, hardyplotter2@gmail.com
+// 	https://github.com/Panda381/PicoLibSDK
+//	https://www.breatharian.eu/hw/picolibsdk/index_en.html
+//	https://github.com/pajenicko/picopad
+//	https://picopad.eu/en/
 
 #include "picopad.h"
 
@@ -65,12 +71,12 @@ int DecUNum(char* buf, u32 num, char sep)
 	return n;
 }
 
-void reset_to_bootsel() {
-	reset_usb_boot(0, 0);
-}
+// decode signed number into ASCIIZ text buffer (returns number of digits)
+//  sep = thousand separator, 0=none
+int DecNum(char *buf, s32 num, char sep) {
+	if (num >= 0) return DecUNum(buf, num, sep);
 
-// reset to boot loader
-void ResetToBootLoader() {
-	watchdog_enable(1, 1);
-	while(1);
+	num = -num;
+	*buf++ = '-';
+	return DecUNum(buf, num, sep) + 1;
 }

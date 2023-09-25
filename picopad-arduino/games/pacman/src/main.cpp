@@ -17,7 +17,7 @@ void setup() {
 	Serial.println("PACMAN game starting...");
 
 	// Initialize the device and display
-	DeviceInit();
+	device_init();
 	DrawClear();
 	LastTime = Time();
 	MaxScore = 0;
@@ -42,6 +42,6 @@ void loop() {
 	DispUpdate();
 
 	do ch = KeyGet(); while (ch == NOKEY);
-	if (ch == KEY_Y) ResetToBootLoader();;
+	if (ch == KEY_Y) reset_to_boot_loader();
 	if (ch == KEY_A) OpenGame();
 }

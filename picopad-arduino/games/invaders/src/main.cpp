@@ -666,7 +666,7 @@ void Game() {
 		switch (KeyGet()) {
 			// reset to boot loader
 			case KEY_Y:
-				ResetToBootLoader();
+				reset_to_boot_loader();
 
 #if USE_SCREENSHOT        // use screen shots
 				case KEY_X:
@@ -704,7 +704,7 @@ void setup() {
 	Serial.println("SPACE INVADERS game starting...");
 
 	// Initialize the device and display
-	DeviceInit();
+	device_init();
 	DrawClear();
 }
 
@@ -727,7 +727,7 @@ void loop() {
 	DispUpdate();
 
 	do key = KeyGet(); while (key == NOKEY);
-	if (key == KEY_Y) ResetToBootLoader();
+	if (key == KEY_Y) reset_to_boot_loader();
 	if (key == KEY_A) {
 		// new game
 		NewGame(0);

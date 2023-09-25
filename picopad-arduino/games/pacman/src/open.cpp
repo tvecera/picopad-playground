@@ -6,7 +6,6 @@
 // ****************************************************************************
 
 #include "open.h"
-#include "fonts/picopad_fonts.h"
 
 const char* const OpenCharName[4] = { "SHADOW", "SPEEDY", "BASHFUL", "POKEY" };
 const char* const OpenCharNick[4] = { "\"BLINKY\"", "\"PINKY\"", "\"INKY\"", "\"CLYDE\"" };
@@ -23,7 +22,7 @@ void DispWait(u32 ms)
 	DispUpdate();
 	do {
 		t = Time(); 
-		if (KeyGet() == KEY_Y) ResetToBootLoader();
+		if (KeyGet() == KEY_Y) reset_to_boot_loader();
 	} while ((u32)(t - LastTime) < (u32)ms);
 	LastTime = t;
 }

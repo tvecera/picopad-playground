@@ -1,6 +1,5 @@
 #include "Arduino.h"
 #include "picopad.h"
-#include "fonts/picopad_fonts.h"
 #include "images.h"
 #include "bme280.h"
 
@@ -19,7 +18,7 @@ bool lastConnected = true;
 void wait(uint16_t ms) {
 	for (uint16_t i = 0; i < ms / 10; i++) {
 		delay(10);
-		if (KeyGet() == KEY_Y) ResetToBootLoader();
+		if (KeyGet() == KEY_Y) reset_to_boot_loader();
 	}
 }
 
@@ -31,7 +30,7 @@ void setup() {
 	Serial.println("BM(E/P)280 sensor application starting...");
 
 	// Initialize the device and display
-	DeviceInit();
+	device_init();
 	DrawClear();
 	DispUpdate();
 
@@ -93,8 +92,8 @@ void loop() {
 		DrawText2(pressure, 80, 178, COL_WHITE);
 		DrawText2("hPa", 80 + (strlen(pressure) * 16) + 4, 178, COL_WHITE);
 
-		u8 ay = 60;
-		u8 dy = 15;
+		uint8_t ay = 60;
+		uint8_t dy = 15;
 		DrawText("Altitude", 260 - (strlen("Altitude") * 8) / 2, ay, COL_WHITE);
 		DrawText(altitude, 260 - (strlen(altitude) * 8) / 2, ay + dy, COL_WHITE);
 

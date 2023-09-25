@@ -1,6 +1,5 @@
 #include "Arduino.h"
 #include "picopad.h"
-#include "fonts/picopad_fonts.h"
 #include "images.h"
 #include <microDS18B20.h>
 
@@ -33,7 +32,7 @@ char ch;
 void wait(uint16_t ms) {
 	for (uint16_t i = 0; i < ms / 10; i++) {
 		delay(10);
-		if (KeyGet() == KEY_Y) ResetToBootLoader();
+		if (KeyGet() == KEY_Y) reset_to_boot_loader();
 	}
 }
 
@@ -45,7 +44,7 @@ void setup() {
 	Serial.println("DS18B20 sensor application starting...");
 
 	// Initialize the device and display
-	DeviceInit();
+	device_init();
 	DrawClear();
 	DispUpdate();
 	SelFont8x8();

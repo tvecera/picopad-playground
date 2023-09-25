@@ -1,6 +1,5 @@
 #include "Arduino.h"
 #include "picopad.h"
-#include "fonts/picopad_fonts.h"
 #include "images.h"
 #include "scd4x.h"
 
@@ -14,7 +13,7 @@ char temperature[8];
 char humidity[8];
 char co2Text[8];
 int normalizedCO2;
-u16 gaugeColor;
+uint16_t gaugeColor;
 
 // This function is responsible for waiting a specific amount of time (ms).
 // Additionally, it checks every 10 milliseconds to see if the 'Y' key is pressed,
@@ -22,11 +21,11 @@ u16 gaugeColor;
 void wait(uint16_t ms) {
 	for (uint16_t i = 0; i < ms / 10; i++) {
 		delay(10);
-		if (KeyGet() == KEY_Y) ResetToBootLoader();
+		if (KeyGet() == KEY_Y) reset_to_boot_loader();
 	}
 }
 
-void DrawGauge(int x0, int y0, int r_outer, int r_inner, int percentage, u16 gauge_col, u16 fill_col) {
+void DrawGauge(int x0, int y0, int r_outer, int r_inner, int percentage, uint16_t gauge_col, uint16_t fill_col) {
 	float angle;
 	float radian;
 	float x, y;
@@ -70,7 +69,7 @@ void setup() {
 	Serial.println("SCD41 sensor application starting...");
 
 	// Initialize the device and display
-	DeviceInit();
+	device_init();
 	DrawClear();
 	DrawImgRle(Scd41Img_RLE, Scd41Img_Pal, 0, 0, 320, 240);
 	const char *d = "CONNECTING";
@@ -103,7 +102,7 @@ void loop() {
 			delay(1);
 		} while (!SCD41.readMeasurement() && ch == NOKEY);
 
-		if (ch == KEY_Y) ResetToBootLoader();
+		if (ch == KEY_Y) reset_to_boot_loader();
 
 		int CO2 = SCD41.getCO2();
 		snprintf(temperature, sizeof(temperature), "%.1f`C", SCD41.getTemperature());
@@ -146,7 +145,7 @@ void loop() {
 		DrawText2(d, (HEIGHT / 2) - (strlen(d) * 8) / 2, (WIDTH / 2) - (strlen(d) * 8) / 2, COL_RED);
 		DispUpdate();
 		do {} while (KeyGet() == NOKEY);
-		ResetToBootLoader();
+		reset_to_boot_loader();
 	}
 
 	// redraw display

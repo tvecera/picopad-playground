@@ -1,76 +1,72 @@
-
-// ****************************************************************************
-//
-//                              PicoPad LEDs
-//
-// ****************************************************************************
-// PicoLibSDK - Alternative SDK library for Raspberry Pico and RP2040
-// Copyright (c) 2023 Miroslav Nemecek, Panda38@seznam.cz, hardyplotter2@gmail.com
-// 	https://github.com/Panda381/PicoLibSDK
-//	https://www.breatharian.eu/hw/picolibsdk/index_en.html
-//	https://github.com/pajenicko/picopad
-//	https://picopad.eu/en/
-// License:
-//	This source code is freely available for any purpose, including commercial.
-//	It is possible to take and modify the code or parts of it, without restriction.
+/**
+* MIT License
+*
+* Copyright (c) 2023 Tomas Vecera, tomas@vecera.dev
+*
+* Portions of this software are derived from the PicoLibSDK:
+*   Copyright (c) 2023 Miroslav Nemecek, Panda38@seznam.cz, hardyplotter2@gmail.com
+*   Repository: https://github.com/Panda381/PicoLibSDK
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+* documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+* rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+* persons to whom the Software is furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+* Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+* WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+* COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+* OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 #include "picopad.h"
 
-// GPIO with LED
-const u8 LedGpioTab[LED_NUM] = {
-	LED1_PIN,	// LED1 inverted, blue, on right
-	LED2_PIN,	// default internal LED pin, on Pico board
+#if USE_PICOPAD_LED
+
+// Structure for LED configuration
+typedef struct {
+		uint8_t pin;       // GPIO pin for the LED
+		bool inverted; // Inversion flag for the LED
+} led_config_t;
+
+// LED configurations
+const led_config_t led_configs[LED_NUM] = {
+		{LED1_PIN, true},
+		{LED2_PIN, false}
 };
 
-// GPIO invert flag
-const Bool LedGpioTabInv[LED_NUM] = {
-	True,		// LED1 inverted, blue, on right
-	False,		// default internal LED pin, on Pico board
-};
-
-// set LED ON (inx = LED index LED?)
-void LedOn(u8 inx)
-{
-	GPIO_Out1(LedGpioTab[inx]);
+// set LED ON
+void led_on(uint8_t inx) {
+	gpio_put(led_configs[inx].pin, 1);
 }
 
-// set LED OFF (inx = LED index LED?)
-void LedOff(u8 inx)
-{
-	GPIO_Out0(LedGpioTab[inx]);
+// set LED OFF
+void led_off(uint8_t inx) {
+	gpio_put(led_configs[inx].pin, 0);
 }
 
-// flip LED (inx = LED index LED?)
-void LedFlip(u8 inx)
-{
-	GPIO_Flip(LedGpioTab[inx]);
-}
-
-// set LED (inx = LED index LED?)
-void LedSet(u8 inx, u8 val)
-{
-	if (val == 0) LedOff(inx); else LedOn(inx);
+// flip LED
+void led_flip(uint8_t inx) {
+	gpio_xor_mask(1UL << led_configs[inx].pin);
 }
 
 // initialize LEDs
-void LedInit()
-{
-	int i;
-	for (i = 0; i < LED_NUM; i++)
-	{
-		GPIO_Init(LedGpioTab[i]);
-		GPIO_DirOut(LedGpioTab[i]);
-		if (LedGpioTabInv[i]) GPIO_OutOverInvert(LedGpioTab[i]);
-		LedOff(i);
+void led_init() {
+	for (int i = 0; i < LED_NUM; i++) {
+		gpio_init(led_configs[i].pin);
+		gpio_set_dir(led_configs[i].pin, GPIO_OUT);
+		if (led_configs[i].inverted) gpio_set_outover(led_configs[i].pin, GPIO_OVERRIDE_INVERT);
+		led_off(i);
 	}
 }
 
 // terminate LEDs
-void LedTerm()
-{
-	int i;
-	for (i = 0; i < LED_NUM; i++)
-	{
-		GPIO_Reset(LedGpioTab[i]);
+void led_terminate() {
+	for (int i = 0; i < LED_NUM; i++) {
+		gpio_deinit(led_configs[i].pin);
 	}
 }
+
+#endif

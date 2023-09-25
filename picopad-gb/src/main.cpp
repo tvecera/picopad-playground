@@ -12,7 +12,7 @@
 #endif
 
 // Enable sound
-#define ENABLE_SOUND  1
+#define ENABLE_SOUND  0
 // Enable LCD
 #define ENABLE_LCD    1
 // High accuracy mode for Peanut GB
@@ -305,8 +305,8 @@ void loop() {
 #if PEANUT_FULL_GBC_SUPPORT
 	if (gbContext.cgb.cgbMode) {
 		// Uncomment = Super turbo mod :)
-		//gbContext.direct.frame_skip = 1;
-		gbContext.direct.interlace = 1;
+		gbContext.direct.frame_skip = 1;
+		//gbContext.direct.interlace = 1;
 	} else {
 		gbContext.direct.frame_skip = 1;
 	}

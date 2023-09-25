@@ -95,7 +95,7 @@ String Seconds;
 void wait(uint16_t ms) {
 	for (uint16_t i = 0; i < ms / 10; i++) {
 		sleep_ms(10);
-		if (KeyGet() == KEY_Y) ResetToBootLoader();
+		if (KeyGet() == KEY_Y) reset_to_boot_loader();
 	}
 }
 
@@ -105,7 +105,7 @@ void setup() {
 	Serial.println("Space game starting...");
 
 	// Initialize the device and display
-	DeviceInit();
+	device_init();
 
 	tft.init();
 	tft.setRotation(1);
@@ -317,7 +317,7 @@ void loop() {
 		px = px + 3;
 
 	if (KeyPressed(KEY_Y))
-		ResetToBootLoader();
+		reset_to_boot_loader();
 
 	if (e == 0) {
 		drawBackground();

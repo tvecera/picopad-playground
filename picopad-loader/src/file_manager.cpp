@@ -1,20 +1,36 @@
-// ****************************************************************************
-//
-//                             PicoPad File Manager
-//
-// ****************************************************************************
-// Based on the code taken from Picopad SDK
-// https://github.com/pajenicko/picopad
+/**
+* MIT License
+*
+* Copyright (c) 2023 Tomas Vecera, tomas@vecera.dev
+*
+* Lot of parts of this software are derived from the PicoLibSDK:
+*   Copyright (c) 2023 Miroslav Nemecek, Panda38@seznam.cz, hardyplotter2@gmail.com
+*   Repository: https://github.com/Panda381/PicoLibSDK
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+* documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+* rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+* persons to whom the Software is furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+* Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+* WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+* COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+* OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
-#include "picopad.h"
-#include "file_manager.h"
-#include "sdk_flash.h"
+#include "include.h"
 
 // boot loader resident segment
-u8 __attribute__((section(".bootloaderdata"))) LoaderData[BOOTLOADER_DATA];
+uint8_t __attribute__((section(".bootloaderdata"))) LoaderData[BOOTLOADER_DATA];
+
+#define MOUNT_INTERVAL 1000000
+#define MOUNT_INVALID_INTERVAL (MOUNT_INTERVAL + 1000000)
 
 // display
-u16 FgCol, BgCol; // foreground and background color
+uint16_t FgCol, BgCol; // foreground and background color
 int DispX, DispY; // X and Y text coordinate
 
 // temporary buffer
@@ -26,19 +42,21 @@ int TempBufInx; // current index in temporary buffer
 // files
 char Path[PATHMAX + 1]; // current path (with terminating 0)
 int PathLen; // length of path
-u32 LastMount; // last mount time
+uint32_t LastMount; // last mount time
 Bool Remount; // remount request
 sFileDesc FileDesc[MAXFILES]; // file descriptors
 int FileNum; // number of files
 int FileCur; // index of current file
 int FileTop; // index of first visible file
-sFile FileF; // search structure
-sFileInfo FileI; // search file info
+FILINFO FileI; // search file info
+
+// current directory start cluster (0 = root)
+uint32_t CurDirClust;
 
 // seek cursor to last name
-char LastName[8];
+char LastName[FILE_NAME_SIZE];
 int LastNameLen; // length of last name, 0 = not used
-u8 LastNameDir; // ATTR_DIR flag of last name
+uint8_t LastNameDir; // ATTR_DIR flag of last name
 
 // preview
 enum {
@@ -49,38 +67,14 @@ enum {
 		PREV_STOP,    // preview not active
 };
 
-u8 PrevState; // current preview state
+uint8_t PrevState; // current preview state
 sFileDesc *PrevFD; // preview file descriptor
 int PrevLine; // current preview line
-sFile PrevFile; // preview file (name[0] = 0 if not open)
+FIL PrevFile; // preview file (name[0] = 0 if not open)
 int PrevW, PrevH; // size of preview image
 
-// get length of ASCIIZ text string
-int StrLen(const char *text) {
-	if (text == NULL) return 0;
-	const char *t = text;
-	while (*t++ != 0) {};
-	return (t - text) - 1;
-}
-
-// decode signed number into ASCIIZ text buffer (returns number of digits)
-//  sep = thousand separator, 0=none
-int DecNum(char *buf, s32 num, char sep) {
-	if (num >= 0) return DecUNum(buf, num, sep);
-
-	num = -num;
-	*buf++ = '-';
-	return DecUNum(buf, num, sep) + 1;
-}
-
-// set home position
-void DispHome() {
-	DispX = 0;
-	DispY = 0;
-}
-
 // set print colors
-void DispCol(u16 fgcol, u16 bgcol) {
+void DispCol(uint16_t fgcol, uint16_t bgcol) {
 	FgCol = fgcol;
 	BgCol = bgcol;
 }
@@ -89,14 +83,14 @@ void DispCol(u16 fgcol, u16 bgcol) {
 void DispText(const char *text) {
 	SelFont8x16();
 	DrawTextBg(text, DispX * FONTW, DispY * FONTH, FgCol, BgCol);
-	DispX += StrLen(text);
+	DispX += static_cast<int>(strlen(text));
 }
 
 // display small text
 void DispSmallText(const char *text) {
 	SelFont6x8();
 	DrawTextBg(text, DispX * FONTW2, DispY * FONTH2, FgCol, BgCol);
-	DispX += StrLen(text);
+	DispX += static_cast<int>(strlen(text));
 }
 
 // print character
@@ -131,61 +125,57 @@ void DispSpcRep(int num) {
 }
 
 // save boot loader data
-void SaveBootData() {
+void save_boot_data() {
 	if ((uint) FileCur < (uint) FileNum) {
 		sFileDesc *fd;
 		fd = &FileDesc[FileCur];
 		LoaderData[0] = fd->len;
 		LoaderData[1] = fd->attr & ATTR_DIR;
 		memcpy(LoaderData + 2, fd->name, 8);
-		SetDir(Path);
-		*(u32 *) &LoaderData[12] = CurDirClust;
-		*(u32 *) &LoaderData[16] = FileTop;
-		*(u32 *) &LoaderData[20] = Crc32ADMA(LoaderData, 20);
+		get_dir_cluster(Path, &CurDirClust);
+		*(uint32_t *) &LoaderData[12] = CurDirClust;
+		*(uint32_t *) &LoaderData[16] = FileTop;
+		*(uint32_t *) &LoaderData[20] = CRC32(LoaderData, 20);
 	}
 }
 
 // load boot loader data
-void LoadBootData() {
-	if (*(u32 *) &LoaderData[20] == Crc32ADMA(LoaderData, 20)) {
+void load_boot_data() {
+	if (*(uint32_t *) &LoaderData[20] == CRC32(LoaderData, 20)) {
 		LastNameLen = LoaderData[0];
 		LastNameDir = LoaderData[1];
 		memcpy(LastName, LoaderData + 2, 8);
-		CurDirClust = *(u32 *) &LoaderData[12];
-		FileTop = *(u32 *) &LoaderData[16];
-		PathLen = GetDir(Path, PATHMAX);
+		CurDirClust = *(uint32_t *) &LoaderData[12];
+		FileTop = static_cast<int>(*(uint32_t *) &LoaderData[16]);
+		PathLen = find_dir_by_cluster(CurDirClust, Path, PATHMAX);
+	} else {
+		LoaderData[0] = 0;
 	}
-	LoaderData[0] = 0;
 }
 
 // display frame of file list
 void FrameFileList() {
 	// reset cursor
-	DispHome();
+	DispX = 0;
+	DispY = TEXTH + 1;
 
 	// top frame
-	DispCol(COL_FILEBG, COL_FILEFG); // invert color
-	DispChar(0x9c); // left frame
-	DispCharRep(0x95, FILECOLW - 2); // row
-	DispChar(0x99); // right frame
+	DispCol(COL_STATUSBG, COL_STATUSBG);
+	DispSpcRep(FILECOLW); // row
 	DispY++;
 
 	// inner rows
 	do {
 		DispX = 0; // reset column
-		DispChar(0x9a); // left frame
-		DispCol(COL_FILEFG, COL_FILEBG); // normal color
-		DispSpcRep(FILECOLW - 2); // row
-		DispCol(COL_FILEBG, COL_FILEFG); // invert color
-		DispChar(0x9a); // right frame
+		DispCol(COL_BLACK, COL_BLACK);
+		DispSpcRep(FILECOLW);
 		DispY++; // increment row
-	} while (DispY != TEXTH - 1);
+	} while (DispY < (TEXTH * 2));
 
 	// bottom frame
 	DispX = 0; // reset column
-	DispChar(0x96); // left frame
-	DispCharRep(0x95, FILECOLW - 2); // row
-	DispChar(0x93); // right frame
+	DispCol(COL_STATUSBG, COL_STATUSBG);
+	DispSpcRep(FILECOLW); // row
 }
 
 // display current path
@@ -194,27 +184,22 @@ void PathFileList() {
 	int len = PathLen;
 
 	// reset cursor
-	DispY = 0;
+	DispY = TEXTH + 1;
 	DispX = 1;
-
-// len <= FILECOLW-4 ... | top_line + space + path + space + top_line |
-// len == FILECOLW-3 ... | path + space |
-// len == FILECOLW-2 ... | path |
-// len > FILECOLW-2 ... | "..." short_path |
 
 	// left part of top line, left space
 	if (len <= FILECOLW - 4) {
 		// left part of top line
-		DispCol(COL_FILEBG, COL_FILEFG); // invert color
-		DispCharRep(0x95, (FILECOLW - 4 - len) / 2); // line
+		DispCol(COL_STATUSBG, COL_STATUSBG); // invert color
+		DispSpcRep((FILECOLW - 4 - len) / 2); // line
 
 		// left space
-		DispCol(COL_TITLEFG, COL_TITLEBG);
+		DispCol(COL_BLACK, COL_WHITE);
 		DispSpc();
 	}
 
 	// path
-	DispCol(COL_TITLEFG, COL_TITLEBG);
+	DispCol(COL_BLACK, COL_WHITE);
 	if (len <= FILECOLW - 2) {
 		// full path
 		DispText(Path);
@@ -230,297 +215,245 @@ void PathFileList() {
 	// right part of top line
 	if (len <= FILECOLW - 4) {
 		// right part of top line
-		DispCol(COL_FILEBG, COL_FILEFG); // invert color
-		DispCharRep(0x95, (FILECOLW - 4 - len + 1) / 2); // line
+		DispCol(COL_STATUSBG, COL_STATUSBG);
+		DispSpcRep((FILECOLW - 4 - len + 1) / 2); // line
 	}
 }
 
 // display current index of selected file
-void InxFileList() {
-	if (FileNum == 0) return;
+void display_file_list_idx() {
+	int textLength;
 
-	// prepare text
-	int n = DecNum(TempBuf, FileCur + 1, 0);
-	TempBuf[n++] = '/';
-	n += DecNum(&TempBuf[n], FileNum, 0);
+	//if (FileNum == 0) return;
+	if (FileNum == 0) {
+		TempBuf[0] = '0';
+		TempBuf[1] = '/';
+		TempBuf[2] = '0';
+		TempBuf[3] = '\0';
+		textLength = 3;
+	} else {
+		// Prepare text
+		textLength = DecNum(TempBuf, FileCur + 1, 0);
+		TempBuf[textLength++] = '/';
+		textLength += DecNum(&TempBuf[textLength], FileNum, 0);
+	}
 
-	// reset cursor
-	DispY = TEXTH - 1;
-	DispX = 1;
+	// Reset cursor
+	DispX = 0;
+	DispY = (TEXTH * 2);
 
-	// left part of bottom line
-	DispCol(COL_FILEBG, COL_FILEFG); // invert color
-	DispCharRep(0x95, (FILECOLW - 4 - n) / 2); // line
-
-	// left space
-	DispCol(COL_FILEFG, COL_FILEBG);
+	DispCol(COL_STATUSBG, COL_STATUSBG);
 	DispSpc();
+	// File color for text 13
+	DispCol(COL_CURBG, COL_STATUSBG);
+	DispText("A");
+	DispCol(COL_WHITE, COL_STATUSBG);
+	DispText("-OPEN");
+	DispSpc();
+	DispCol(COL_CURBG, COL_STATUSBG);
+	DispText("B");
+	DispCol(COL_WHITE, COL_STATUSBG);
+	DispText("-BACK");
 
-	// text
+	// Display the centered actual text, e.g. 1/20
+	DispSpcRep((FILECOLW - 28 - textLength) / 2);
 	DispText(TempBuf);
-
-	// right space
+	DispSpcRep((FILECOLW - 2 - textLength) / 2);
 	DispSpc();
-
-	// right part of bottom line
-	DispCol(COL_FILEBG, COL_FILEFG); // invert color
-	DispCharRep(0x95, (FILECOLW - 4 - n + 1) / 2); // line
 }
 
-// dispay file list
-void DispFileList() {
-	// reset cursor
-	DispY = 1;
+bool has_extension(const char *name, const char *ext) {
+	size_t len = strlen(name);
+	size_t ext_len = strlen(ext);
+	if (len <= ext_len) {
+		return false;
+	}
+	// Pointer to the start of the extension in name
+	const char *name_ext = name + len - ext_len;
+	// Check if the character before the extension is a dot and perform a case-insensitive comparison
+	return *(name_ext - 1) == '.' && strncasecmp(name_ext, ext, ext_len) == 0;
+}
 
-	// display files
-	int i, j;
-	char ch;
-	Bool dir;
+bool is_directory(const FILINFO &file_info) {
+	return (file_info.fattrib & ATTR_DIR) != 0;
+}
+
+bool is_hidden(const FILINFO &file_info) {
+	return (file_info.fattrib & ATTR_HID) != 0;
+}
+
+const char *extract_name(const FILINFO &file_info) {
+	if (strlen(file_info.fname) > FILE_NAME_SIZE) {
+		return file_info.altname;
+	}
+	return file_info.fname;
+}
+
+int compare_file_desc(const void *a, const void *b) {
+	auto *fa = (sFileDesc *) a;
+	auto *fb = (sFileDesc *) b;
+
+	// If one is a directory and the other is not, the directory comes first.
+	if ((fa->attr & ATTR_DIR) && !(fb->attr & ATTR_DIR)) {
+		return -1;
+	} else if (!(fa->attr & ATTR_DIR) && (fb->attr & ATTR_DIR)) {
+		return 1;
+	}
+
+	// If both are directories or both are files, compare by name.
+	return strcasecmp(fa->name, fb->name);
+}
+
+void display_attributes(unsigned char attributes) {
+	if (attributes & ATTR_TXT) {
+		DispText("TXT");
+	} else {
+		DispSpcRep(3);
+	}
+
+	DispSpc();
+
+	if (attributes & ATTR_BMP) {
+		DispText("BMP");
+	} else {
+		DispSpcRep(3);
+	}
+	DispSpc();
+}
+
+void display_file_name(sFileDesc *fd) {
+	char startChar = ' ';
+	char endChar = ' ';
+	int padding = 30;
+
+	if (fd->attr & ATTR_DIR) {
+		DispSpc();
+		padding--;
+		startChar = '[';
+		endChar = ']';
+	}
+
+	DispChar(startChar);
+	for (int j = 0; j < fd->len; j++) {
+		DispChar(fd->name[j]);
+	}
+	DispChar(endChar);
+
+	DispSpcRep(padding - fd->len); // Display spaces
+}
+
+void display_file_list() {
+	DispY = TEXTH + 2;
 	sFileDesc *fd = &FileDesc[FileTop];
-	for (i = 0; i < FILEROWS; i++) {
-		DispX = 1;
 
-		// set normal color
-		DispCol(COL_FILEFG, COL_FILEBG);
+	for (int i = 0; i < FILEROWS; i++) {
+		DispX = 0;
 
-		// entry is valid
-		j = i + FileTop;
-		if (j < FileNum) {
-			// check directory
-			dir = ((fd->attr & ATTR_DIR) != 0);
+		// If entry is valid
+		if (i + FileTop < FileNum) {
+			if (i + FileTop == FileCur) {
+				DispCol(COL_CURFG, COL_CURBG);
+			} else {
+				// Set default file or directory color
+				DispCol(COL_WHITE, COL_BLACK);
+			}
 
-			// set directory color
-			if (dir) DispCol(COL_DIRFG, COL_DIRBG);
-
-			// set cursor color
-			if (j == FileCur) DispCol(COL_CURFG, COL_CURBG);
-
-			// directory mark '['
-			ch = dir ? '[' : ' ';
-			DispChar(ch);
-
-			// decode entry name
-			for (j = 0; j < fd->len; j++) DispChar(fd->name[j]);
-
-			// directory mark ']'
-			ch = dir ? ']' : ' ';
-			DispChar(ch);
-
-			// display spaces
-			DispSpcRep(9 - fd->len);
-
-			// TXT mark
-			if ((fd->attr & ATTR_TXT) != 0) {
-				DispText("TXT");
-			} else
-				DispSpcRep(3);
-
-			// space
+			display_file_name(fd);
+			display_attributes(fd->attr);
 			DispSpc();
+		} else {
+			DispCol(COL_WHITE, COL_BLACK);
+			// Clear invalid row
+			DispSpcRep(FILECOLW);
+		}
 
-			// BMP mark
-			if ((fd->attr & ATTR_BMP) != 0) {
-				DispText("BMP");
-			} else
-				DispSpcRep(3);
-		} else
-			// clear invalid row
-			DispSpcRep(FILECOLW - 2);
-
-		// increase file
 		DispY++;
 		fd++;
 	}
 
-	// display current index
-	InxFileList();
-
-	// restart preview state
+	display_file_list_idx();
 	PrevState = PREV_START;
 }
 
-// load files (programs with UF2 extension, directory without extension)
-void LoadFileList() {
-	// clear file list
+void load_file_list() {
+	DIR DirInstance;
+	size_t len;
+	sFileDesc *fd = FileDesc;
+
+	// Clear file list
 	FileNum = 0;
 	FileCur = 0;
-//	FileTop = 0;
+	FileTop = 0;
 
-	// set current directory
-	if (!SetDir(Path)) return;
+	if (!open_search(&DirInstance, &FileI, Path, "*")) return;
 
-	// open search
-	if (!FindOpen(&FileF, "")) return;
+	do {
+		// extract name
+		const char *name = extract_name(FileI);
+		// name length
+		len = strlen(name);
+		// get file attributes
+		fd->attr = FileI.fattrib & ATTR_MASK;
 
-	// load files
-	int inx, i, len;
-	sFileDesc *fd = FileDesc;
-	char ch;
-	char *name;
-	Bool dir;
-	for (inx = 0; inx < MAXFILES; inx++) {
-		// find next file
-		if (!FindNext(&FileF, &FileI, ATTR_DIR_MASK, "*.*")) break;
-
-		// check directory
-		dir = (FileI.attr & ATTR_DIR) != 0;
-
-		// skip directory "."
-		len = FileI.namelen;
-		name = FileI.name;
-		if (dir && (len == 1) && (name[0] == '.')) continue;
-
-		// get attributes
-		fd->attr = FileI.attr & ATTR_MASK;
-
-		// copy directory ".."
-		if (dir && (len == 2) && (name[0] == '.') && (name[1] == '.')) {
-			fd->len = len;
-			fd->name[0] = '.';
-			fd->name[1] = '.';
-			fd++;
-			FileNum++;
-		} else {
-			// skip hidden entry
-			if ((FileI.attr & ATTR_HID) != 0) continue;
-
-			// directory
-			if (dir) {
-				// copy directory name (without extension)
-				for (i = 0; (i < len) && (i < 8); i++) {
-					ch = name[i];
-					if (ch == '.') break;
-					fd->name[i] = ch;
-				}
-
-				// directory is valid only if has no extension
-				if (i == len) {
+		if (is_directory(FileI)) {
+			if (len == 1 && name[0] == '.') continue;
+			if (len == 2 && name[0] == '.' && name[1] == '.') {
+				fd->len = len;
+				strcpy(fd->name, "..");
+				fd++;
+				FileNum++;
+			} else if (!is_hidden(FileI)) {
+				// Directory with no extension
+				char *dot = strchr(name, '.');
+				if (!dot) {
+					strcpy(fd->name, name);
 					fd->len = len;
 					fd++;
 					FileNum++;
 				}
 			}
-
-				// file
-			else {
-				// check extension "UF2"
-				if ((len > 4) && (name[len - 4] == '.') && (name[len - 3] == 'P') &&
-						(name[len - 2] == 'P') && (name[len - 1] == '2')) {
-					// copy file name (without extension)
-					fd->len = len - 4;
-					memcpy(fd->name, name, len - 4);
-					fd++;
-					FileNum++;
-				}
+		} else {
+			if (has_extension(name, "PP2") && !is_hidden(FileI)) {
+				fd->len = len - 4;
+				memcpy(fd->name, name, len - 4);
+				fd++;
+				FileNum++;
 			}
 		}
-	}
+	} while (find_next(&DirInstance, &FileI));
 
-	// open search again, to check info files
-	if (FindOpen(&FileF, "")) {
-		// find next file
-		while (FindNext(&FileF, &FileI, ATTR_DIR_MASK, "*.*")) {
-			// skip directory
-			if ((FileI.attr & ATTR_DIR) != 0) continue;
+	// Additional operations on TXT and BMP files
+	if (open_search(&DirInstance, &FileI, Path, "*.*")) {
+		do {
+			if (is_directory(FileI)) continue;
 
-			// check extension "TXT"
-			len = FileI.namelen;
-			if (len > 4) {
-				len -= 4;
+			const char *name = extract_name(FileI);
+			len = strlen(name) - 4;
 
-				name = FileI.name;
-				if ((name[len] == '.') && (name[len + 1] == 'T') &&
-						(name[len + 2] == 'X') && (name[len + 3] == 'T')) {
-					// search this file name
-					sFileDesc *fd = FileDesc;
-					for (inx = 0; inx < FileNum; inx++) {
-						// compare file name length
-						if (fd->len == len) {
-							// compare file names, set TXT flag
-							if (memcmp(fd->name, name, len) == 0) fd->attr |= ATTR_TXT;
-						}
-						fd++;
+			if (has_extension(name, "TXT")) {
+				for (int inx = 0; inx < FileNum; inx++) {
+					if (FileDesc[inx].len == len && memcmp(FileDesc[inx].name, name, len) == 0) {
+						FileDesc[inx].attr |= ATTR_TXT;
 					}
-				} else {
-					// check extension "BMP"
-					if ((name[len] == '.') && (name[len + 1] == 'B') &&
-							(name[len + 2] == 'M') && (name[len + 3] == 'P')) {
-						// search this file name
-						sFileDesc *fd = FileDesc;
-						for (inx = 0; inx < FileNum; inx++) {
-							// compare file name length
-							if (fd->len == len) {
-								// compare file names, set BMP flag
-								if (memcmp(fd->name, name, len) == 0) fd->attr |= ATTR_BMP;
-							}
-							fd++;
-						}
+				}
+			} else if (has_extension(name, "BMP")) {
+				for (int inx = 0; inx < FileNum; inx++) {
+					if (FileDesc[inx].len == len && memcmp(FileDesc[inx].name, name, len) == 0) {
+						FileDesc[inx].attr |= ATTR_BMP;
 					}
 				}
 			}
-		}
+		} while (find_next(&DirInstance, &FileI));
 	}
 
-	// sort files (using bubble sort)
-	fd = FileDesc;
-	for (inx = 0; inx < FileNum - 1;) {
-		Bool ok = True;
+	// Sort files using qsort
+	qsort(FileDesc, FileNum, sizeof(sFileDesc), compare_file_desc);
 
-		// directory '..' must be at first place
-		if ((fd[1].len == 2) && (fd[1].name[0] == '.') && (fd[1].name[1] == '.')) ok = False;
-
-		// directory must be before the files
-		if (((fd[0].attr & ATTR_DIR) == 0) && ((fd[1].attr & ATTR_DIR) != 0)) ok = False;
-
-		// entry of the same group
-		if (((fd[0].attr ^ fd[1].attr) & ATTR_DIR) == 0) {
-			// compare names
-			len = fd[0].len;
-			if (fd[1].len < fd[0].len) len = fd[1].len;
-			for (i = 0; i < len; i++) {
-				if (fd[0].name[i] != fd[1].name[i]) break;
-			}
-
-			if (i < len) // names are different
-			{
-				if (fd[0].name[i] > fd[1].name[i]) ok = False;
-			} else // names are equal, check name lengths
-			{
-				if (fd[1].len < fd[0].len) ok = False;
-			}
-		}
-
-		// exchange files
-		if (!ok) {
-			ch = fd[0].attr;
-			fd[0].attr = fd[1].attr;
-			fd[1].attr = ch;
-
-			ch = fd[0].len;
-			fd[0].len = fd[1].len;
-			fd[1].len = ch;
-
-			for (i = 0; i < 8; i++) {
-				ch = fd[0].name[i];
-				fd[0].name[i] = fd[1].name[i];
-				fd[1].name[i] = ch;
-			}
-
-			// shift index down
-			if (inx > 0) {
-				inx -= 2;
-				fd -= 2;
-			}
-		}
-
-		// shift index up
-		inx++;
-		fd++;
-	}
+	close_search(&DirInstance);
 }
 
 // request to reload current directory
-void Reload() {
+void reload() {
 	// reset file list
 	FileNum = 0; // no entry
 	FileCur = 0; // reset cursor
@@ -540,18 +473,18 @@ void Reload() {
 }
 
 // reset to root
-void ResetRoot() {
+void reset_root() {
 	// reset path to root
 	Path[0] = PATHCHAR;
 	Path[1] = 0;
 	PathLen = 1;
 
 	// request to reload current directory
-	Reload();
+	reload();
 }
 
 // set cursor to last name
-void SetLastName() {
+void set_last_name() {
 	sFileDesc *fd;
 	int i;
 
@@ -580,13 +513,13 @@ void SetLastName() {
 }
 
 // display info text
-void DispInfo(const char *text) {
+void disp_info(const char *text) {
 	// prepare length of into text
-	int len = StrLen(text);
+	int len = static_cast<int>(strlen(text));
 
 	// set text color and coordinated
-	DispCol(COL_INFOFG, COL_INFOBG);
-	DispY = 2;
+	DispCol(COL_INFOFG, COL_BLACK);
+	DispY = TEXTH + 3;
 	DispX = (FILECOLW - len) / 2;
 
 	// display info text
@@ -594,18 +527,18 @@ void DispInfo(const char *text) {
 }
 
 // loading next byte from temporary buffer (returns 0 if no next byte)
-u8 PrevChar() {
+uint8_t prev_char() {
 	// check if buffer need to be loaded
 	if (TempBufInx >= TempBufNum) {
 		// check if file is open
-		if (!FileIsOpen(&PrevFile)) return 0;
+		if (!is_file_open(&PrevFile)) return 0;
 
 		// read next temporary buffer
 		TempBufInx = 0;
-		TempBufNum = FileRead(&PrevFile, TempBuf, TEMPBUF);
+		TempBufNum = file_read(&PrevFile, TempBuf, TEMPBUF);
 
 		// end of file
-		if (TempBufNum < TEMPBUF) FileClose(&PrevFile);
+		if (TempBufNum < TEMPBUF) file_close(&PrevFile);
 
 		// no data
 		if (TempBufNum == 0) return 0;
@@ -616,36 +549,36 @@ u8 PrevChar() {
 }
 
 // loading next byte from temporary buffer, skip CR (returns 0 if no next byte)
-char PrevCharCR() {
+char prev_char_cr() {
 	char ch;
 	do {
-		ch = PrevChar();
+		ch = prev_char();
 	} while (ch == CH_CR);
 	return ch;
 }
 
 // clear preview panel
-void PreviewClr() {
-	DrawRect(WIDTH / 2, 0, WIDTH / 2, HEIGHT, COL_BLACK);
+void preview_clear() {
+	DrawRect(0, 0, WIDTH, HEIGHT / 2, COL_BLACK);
 }
 
 // display preview
-void Preview() {
-	int i, j;
+void disp_preview() {
+	int i, padding;
 	char ch;
-	u8 inv;
+	uint8_t inv;
 	sBmp *bmp;
-	u16 *dst;
+	uint16_t *dst;
 
 	switch (PrevState) {
 		// waiting for start
 		case PREV_START:
 
 			// close old preview file
-			FileClose(&PrevFile);
+			file_close(&PrevFile);
 
 			// clear preview panel
-			PreviewClr();
+			preview_clear();
 
 			// check if current file is valid
 			if ((uint) FileCur >= (uint) FileNum) {
@@ -659,7 +592,7 @@ void Preview() {
 
 			// no text file
 			if ((PrevFD->attr & ATTR_TXT) == 0) {
-				// waitting for bitmap start
+				// waiting for bitmap start
 				PrevState = PREV_BMP_START;
 				return;
 			}
@@ -669,9 +602,9 @@ void Preview() {
 			memcpy(&TempBuf[PrevFD->len], ".TXT", 5);
 
 			// open text file
-			SetDir(Path);
-			if (!FileOpen(&PrevFile, TempBuf)) {
-				// cannot open text file, waitting for bitmap start
+			set_dir(Path);
+			if (!file_open(&PrevFile, TempBuf, FA_READ)) {
+				// cannot open text file, waiting for bitmap start
 				PrevState = PREV_BMP_START;
 				return;
 			}
@@ -709,7 +642,7 @@ void Preview() {
 			// decode one row (i = relative character position)
 			for (i = 0; i < TEXTW2 / 2;) {
 				// load next character, skip CR characters
-				ch = PrevCharCR();
+				ch = prev_char_cr();
 
 				// LF end of line or NUL end of file
 				if ((ch == CH_LF) || (ch == 0)) break;
@@ -724,7 +657,7 @@ void Preview() {
 					// prefix character ^
 					if (ch == '^') {
 						// load next character
-						ch = PrevCharCR();
+						ch = prev_char_cr();
 
 						// LF end of line or NUL end of file
 						if ((ch == CH_LF) || (ch == 0))
@@ -787,7 +720,7 @@ void Preview() {
 			if (i == TEXTW2 / 2) {
 				// find LF end of line or NUL end of file
 				do {
-					ch = PrevCharCR();
+					ch = prev_char_cr();
 				} while ((ch != CH_LF) && (ch != 0));
 			}
 
@@ -798,7 +731,7 @@ void Preview() {
 			PrevLine++;
 			if (PrevLine >= i) {
 				// close text file
-				FileClose(&PrevFile);
+				file_close(&PrevFile);
 
 				// start loading bitmap
 				PrevState = PREV_BMP_START;
@@ -807,9 +740,20 @@ void Preview() {
 
 			// waiting for bitmap start
 		case PREV_BMP_START:
+			// close old preview file
+			file_close(&PrevFile);
 
 			// no bitmap file
 			if ((PrevFD->attr & ATTR_BMP) == 0) {
+				int ix;
+				if (PrevFD->attr & ATTR_DIR) {
+					ix = (PrevFD->attr & ATTR_TXT) == 0 ? (WIDTH / 2) - (86 / 2) : 0;
+					DrawImgRle(FolderImg_RLE, FolderImg_Pal, ix, 25, 86, 70);
+				} else {
+					ix = (PrevFD->attr & ATTR_TXT) == 0 ? (WIDTH / 2) - (68 / 2) : 0;
+					DrawImgRle(FileImg_RLE, FileImg_Pal, ix, 17, 68, 86);
+				}
+
 				// stop loading
 				PrevState = PREV_STOP;
 				return;
@@ -820,8 +764,8 @@ void Preview() {
 			memcpy(&TempBuf[PrevFD->len], ".BMP", 5);
 
 			// open bitmap file
-			SetDir(Path);
-			if (!FileOpen(&PrevFile, TempBuf)) {
+			set_dir(Path);
+			if (!file_open(&PrevFile, TempBuf, FA_READ)) {
 				// cannot open bitmap file, stop
 				PrevState = PREV_STOP;
 				return;
@@ -830,7 +774,7 @@ void Preview() {
 			TempBufInx = 0; // reset current index in temporary buffer
 
 			// load bitmap header
-			i = FileRead(&PrevFile, TempBuf, sizeof(sBmp));
+			i = file_read(&PrevFile, TempBuf, sizeof(sBmp));
 
 			// get size of preview image
 			bmp = (sBmp *) TempBuf;
@@ -846,9 +790,8 @@ void Preview() {
 					(bmp->bfSize < 100) || (bmp->bfSize > 5000000) ||
 					(bmp->bfOffBits < 54) || (bmp->bfOffBits > 2000) ||
 					(bmp->biPlanes != 1) ||
-					(bmp->biBitCount != 16) /*||
-			(bmp->biCompression != 0)*/) {
-				FileClose(&PrevFile);
+					(bmp->biBitCount != 16)) {
+				file_close(&PrevFile);
 
 				// cannot open bitmap file, stop
 				PrevState = PREV_STOP;
@@ -856,10 +799,10 @@ void Preview() {
 			}
 
 			// set start of first line
-			FileSeek(&PrevFile, bmp->bfOffBits);
+			file_seek(&PrevFile, bmp->bfOffBits);
 
 			// prepare first video line
-			PrevLine = ((PrevFD->attr & ATTR_TXT) == 0) ? 0 : (HEIGHT / 2);
+			PrevLine = 0; //((PrevFD->attr & ATTR_TXT) == 0) ? 0 : (HEIGHT / 2);
 
 			// loading bitmap file
 			PrevState = PREV_BMP_LOAD;
@@ -867,28 +810,28 @@ void Preview() {
 
 			// loading bitmap
 		case PREV_BMP_LOAD:
-
 			// prepare address in video memory
-			dst = &FrameBuf[PrevLine * WIDTH + WIDTH / 2];
+			padding = ((PrevFD->attr & ATTR_TXT) == 0) ? (WIDTH / 4) : 0;
+			dst = &FrameBuf[(PrevLine * WIDTH) + padding];
 
 			// prepare size of data to read from one line
 			i = (PrevW > (WIDTH / 2)) ? (WIDTH / 2) : PrevW;
 
 			// read one video line
-			FileRead(&PrevFile, dst, i * 2);
-			DispDirtyRect(WIDTH / 2, PrevLine, WIDTH / 2, 1);
+			file_read(&PrevFile, dst, i * 2);
+			DispDirtyRect(padding, PrevLine, WIDTH / 2, 1);
 
 			// skip rest of line
-			if (PrevW > (WIDTH / 2)) FileSeek(&PrevFile, FilePos(&PrevFile) + (PrevW - (WIDTH / 2)) * 2);
+			if (PrevW > (WIDTH / 2)) file_seek(&PrevFile, PrevFile.fptr + (PrevW - (WIDTH / 2)) * 2);
 
 			// increase line
 			PrevLine++;
 			PrevH--;
 
 			// end of image
-			if ((PrevLine >= HEIGHT) || (PrevH <= 0)) {
+			if ((PrevLine >= (HEIGHT / 2)) || (PrevH <= 0)) {
 				// close preview file
-				FileClose(&PrevFile);
+				file_close(&PrevFile);
 
 				// stop preview
 				PrevState = PREV_STOP;
@@ -902,144 +845,137 @@ void Preview() {
 	}
 }
 
-// check application in memory
-Bool CheckApp() {
-	// start of application
-	const u32 *app = (const u32 *) (XIP_BASE + WRITE_ADDR_MIN);
-
-	// application header
-	const u32 *h = &app[48]; // 16+32 vectors
-
-	// check header base
-	if (h[0] != 0x44415050) return False; // check magic "PPAD"
-
-	// get application size
-	int len = h[1];
-	if ((len < 10) || (len > 2 * 1024 * 1024)) return False;
-
-	// check application CRC
-	u32 crc = Crc32ADMA(&app[51], len);
-	return crc == h[2];
-}
-
-// display progress bar
-void Progress(int i, int n, u16 col) {
-#define PROGRESS_X 32
-#define PROGRESS_Y 122
-#define PROGRESS_W 256
-#define PROGRESS_H 16
-
-	DrawFrame(PROGRESS_X - 2, PROGRESS_Y - 2, PROGRESS_W + 4, PROGRESS_H + 4, COL_WHITE);
-	DrawRect(PROGRESS_X, PROGRESS_Y, PROGRESS_W, PROGRESS_H, COL_GRAY);
-	DrawRect(PROGRESS_X, PROGRESS_Y, i * PROGRESS_W / n, PROGRESS_H, col);
-	DispUpdate();
-}
-
-// display big info text
-void DispBigInfo(const char *text) {
-	DrawClear();
-	int len = StrLen(text);
-	SelFont8x16();
-	DrawTextBg2(text, (WIDTH - len * 16) / 2, 88, COL_BIGINFOFG, COL_BIGINFOBG);
-	DispUpdate();
-}
-
-// clear program memory
-void ClearApp(int size) {
-	// display info
-	DispBigInfo("Erasing...");
-
-	// find end of memory
-	u32 addr = XIP_BASE + WRITE_ADDR_MIN;
-	u32 count = size;
-	if (count <= 0)
-		count = 2 * 1024 * 1024 - WRITE_ADDR_MIN;
-	else
-		count = count + 0x8000;
-	const u32 *s = (const u32 *) (addr + count);
-	while (count >= 4) {
-		if (s[-1] != (u32) -1) break;
-		s--;
-		count -= 4;
-	}
-	count = (count + 0x8000 - 4) & ~0x7fff;
-	// rozdeleni na 32Kb bloky
-
-	// erase memory
-	int n = count;
-	int k;
-	while (count >= 0x1000) {
-		Progress(n - count, n, COL_ORANGE);
-
-		k = count;
-		if (((addr & 0xffff) == 0x8000) && (count >= 0x8000))
-			k = 0x8000;
-		else if (k >= 0x10000) k = 0x10000;
-
-		FlashErase(addr - XIP_BASE, k);
-		addr += k;
-		count -= k;
-	}
-	Progress(n, n, COL_ORANGE);
-	WaitMs(50);
-}
-
 // display big error text
-void DispBigErr(const char *text = "Loading Error") {
-	FileClose(&PrevFile);
-
+void disp_big_err(uint8_t code) {
+	file_close(&PrevFile);
+	disp_error_page(code);
 	DrawClear();
-	int len = StrLen(text);
-	SelFont8x8();
-	DrawTextBg(text, (WIDTH - len * 16) / 2, (HEIGHT - 32) / 2, COL_BIGERRFG, COL_BIGERRBG);
-	DispUpdate();
-
-	KeyFlush();
-	while (KeyGet() == NOKEY) {}
-
-	PreviewClr();
+	preview_clear();
 	FrameFileList();
-	DispFileList();
+	display_file_list();
 	DispUpdate();
 }
 
-int show_file_manager() {
+// Button A
+void enter_subdirectory(sFileDesc *fd) {
+	// going to subdirectory
+	// check path length
+	if (PathLen + 1 + fd->len <= PATHMAX) {
+		// add path separator if not root
+		if (PathLen != 1) Path[PathLen++] = PATHCHAR;
+
+		// add path name
+		memcpy(&Path[PathLen], fd->name, fd->len);
+		PathLen += fd->len;
+	}
+
+	// set terminating 0
+	Path[PathLen] = 0;
+
+	// request to reload current directory
+	FileTop = 0;
+	reload();
+
+	// Invalidate last mount time
+	LastMount = to_us_since_boot(get_absolute_time()) - MOUNT_INVALID_INTERVAL;
+}
+
+// Button A
+uint8_t load_application(sFileDesc *fd) {
+	uint8_t res;
+	// close old preview file
+	file_close(&PrevFile);
+
+	// prepare filename of the file
+	memcpy(TempBuf, fd->name, fd->len);
+	memcpy(&TempBuf[fd->len], ".PP2", 5);
+
+	res = flash_application_file(Path, TempBuf);
+	if (res != RESULT_OK) {
+		disp_big_err(res);
+		return res;
+	}
+
+	save_boot_data();
+
+	return RESULT_OK;
+}
+
+// out of directory
+void leave_directory() {
+	int i;
+
+	// not root directory yet
+	if (PathLen > 1) {
+		// delete last directory
+		i = PathLen;
+		while (Path[PathLen - 1] != PATHCHAR) PathLen--;
+
+		// save last name
+		LastNameLen = i - PathLen;
+		memcpy(LastName, &Path[PathLen], LastNameLen);
+		LastNameDir = ATTR_DIR;
+
+		// delete path separator if not root
+		if (PathLen > 1) PathLen--;
+
+		// set terminating 0
+		Path[PathLen] = 0;
+
+		// request to reload current directory
+		FileTop = 0;
+		reload();
+
+		// Invalidate last mount time
+		LastMount = to_us_since_boot(get_absolute_time()) - MOUNT_INVALID_INTERVAL;
+
+		save_boot_data();
+	}
+}
+
+uint8_t show_file_manager() {
 	DrawClear();
-	int i, j, k, m, n;
-	u32 t;
+
+	int i, j;
+	uint32_t t;
 	sFileDesc *fd;
+	uint8_t res;
 
 	// reset to root
 	LastNameLen = 0; // no last name
-	FileInit(&PrevFile); // initialize file structure of preview file
-	ResetRoot();
+	PrevState = PREV_STOP;
 
 	// display frame of file list
 	FrameFileList();
-	DispInfo("Insert SD card");
+	reset_root();
+	DrawImgRle(SdcardImg_RLE, SdcardImg_Pal, (WIDTH / 2) - (82 / 2), 19, 82, 82);
+	disp_info("Insert SD card");
 
 	// initialize remount
-	LastMount = Time() - 2000000; // invalidate last mount time = current time - 2 seconds
-	Remount = True; // remount request
+	// invalidate last mount time
+	LastMount = to_us_since_boot(get_absolute_time()) - MOUNT_INVALID_INTERVAL;
+	// remount request
+	Remount = True;
 
-	if (DiskMount()) {
+	if (sd_mount()) {
 		FileTop = 0;
 
-		// load boot loader data
-		LoadBootData();
-
 		// display info text
-		DispInfo("Loading files...");
+		disp_info("Loading files...");
+		DispUpdate();
+
+		// load boot loader data
+		load_boot_data();
 
 		// load files
 		Remount = False; // clear flag - disk already remounted
-		LoadFileList(); // load file list
+		load_file_list(); // load file list
 
 		// set cursor to last name
-		SetLastName();
+		set_last_name();
 
 		// display new directory
-		DispFileList();
+		display_file_list();
 	}
 
 	while (True) {
@@ -1047,52 +983,56 @@ int show_file_manager() {
 		DispUpdate();
 
 		// check last mount time (interval 1 second)
-		t = Time();
-		if ((int) (t - LastMount) > 1000000) {
+		t = to_us_since_boot(get_absolute_time());
+		if (((int) (t - LastMount) > MOUNT_INTERVAL) && PrevState == PREV_STOP) {
 			// save new last mount time
 			LastMount = t;
 
 			// disk removed, request to remount disk next time
-			if (!DiskMount()) {
+			if (!sd_mount()) {
 				// clear directories if not done yet
 				if (!Remount) // if remount request yet not set
 				{
 					// clear preview panel
-					PreviewClr();
+					preview_clear();
 
 					// reset to root
-					ResetRoot();
+					reset_root();
+
+					DrawImgRle(SdcardImg_RLE, SdcardImg_Pal, (WIDTH / 2) - (82 / 2), 19, 82, 82);
 
 					// display info text
-					DispInfo("Insert SD card");
+					disp_info("Insert SD card");
 				}
 			} else {
 				// reload directories if disk need to be remounted
 				if (Remount) {
-//					FileTop = 0;
+					FileTop = 0;
 
 					// clear preview panel
-					PreviewClr();
+					preview_clear();
 
 					// display info text
-					DispInfo("Loading files...");
+					disp_info("Loading files...");
 
 					// load files
 					Remount = False; // clear flag - disk already remounted
-					LoadFileList(); // load file list
+					load_file_list(); // load file list
 
 					// set cursor to last name
-					SetLastName();
+					set_last_name();
 
 					// display new directory
-					DispFileList();
+					display_file_list();
+
+					save_boot_data();
 				}
 			}
 		}
 
 		// keyboard service
 		while (True) {
-			u8 ch = KeyGet();
+			uint8_t ch = screensaver_reset_timer(KeyGet());
 			if (ch == NOKEY) break;
 
 			// key switch
@@ -1111,8 +1051,8 @@ int show_file_manager() {
 						if (FileTop < i) FileTop = i;
 
 						// repaint display
-						DispFileList();
-						SaveBootData();
+						display_file_list();
+						save_boot_data();
 					}
 					break;
 
@@ -1133,15 +1073,14 @@ int show_file_manager() {
 								FileTop = i; // reduce top entry
 							}
 							FileCur += j; // shift cursor
+						} else {
+							// max. top entry reached - only shift cursor
+							FileCur = FileNum - 1;
 						}
 
-							// max. top entry reached - only shift cursor
-						else
-							FileCur = FileNum - 1;
-
 						// repaint display
-						DispFileList();
-						SaveBootData();
+						display_file_list();
+						save_boot_data();
 					}
 					break;
 
@@ -1155,8 +1094,8 @@ int show_file_manager() {
 						if (FileTop > FileCur) FileTop = FileCur;
 
 						// repaint display
-						DispFileList();
-						SaveBootData();
+						display_file_list();
+						save_boot_data();
 					}
 					break;
 
@@ -1174,15 +1113,13 @@ int show_file_manager() {
 							}
 							FileCur -= j; // shift cursor
 						}
-
 							// min. top entry reached - only shift cursor
 						else
 							FileCur = 0;
 
-
 						// repaint display
-						DispFileList();
-						SaveBootData();
+						display_file_list();
+						save_boot_data();
 					}
 					break;
 
@@ -1190,145 +1127,37 @@ int show_file_manager() {
 				case KEY_A:
 					if ((uint) FileCur < (uint) FileNum) {
 						fd = &FileDesc[FileCur];
-
 						// change directory
 						if ((fd->attr & ATTR_DIR) != 0) {
-							// going to up-directory
-							if ((fd->len == 2) && (fd->name[0] == '.') && (fd->name[1] == '.')) {
-								// delete last directory
-								i = PathLen;
-								while (Path[PathLen - 1] != PATHCHAR) PathLen--;
-
-								// save last name
-								LastNameLen = i - PathLen;
-								memcpy(LastName, &Path[PathLen], LastNameLen);
-								LastNameDir = ATTR_DIR;
-
-								// delete path separator if not root
-								if (PathLen > 1) PathLen--;
-							}
-
-								// going to sub-directory
-							else {
-								// check path length
-								if (PathLen + 1 + fd->len <= PATHMAX) {
-									// add path separator if not root
-									if (PathLen != 1) Path[PathLen++] = PATHCHAR;
-
-									// add path name
-									memcpy(&Path[PathLen], fd->name, fd->len);
-									PathLen += fd->len;
-								}
-							}
-
-							// set terminating 0
-							Path[PathLen] = 0;
-
-							// request to reload current directory
-							FileTop = 0;
-							Reload();
-
-							// invalidate last mount time = current time - 2 seconds
-							LastMount = Time() - 2000000;
+							enter_subdirectory(fd);
 						} else {
-							// close old preview file
-							FileClose(&PrevFile);
-
-							// prepare filename of the file
-							memcpy(TempBuf, fd->name, fd->len);
-							memcpy(&TempBuf[fd->len], ".PP2", 5);
-
-							// open file
-							DispBigInfo("Loading...");
-							SetDir(Path);
-							if (!FileOpen(&PrevFile, TempBuf)) {
-								DispBigErr("Cannot open file!");
-							} else {
-								i = PrevFile.size;
-
-								// erase memory
-								ClearApp(i);
-
-								DispBigInfo("Loading...");
-
-								j = -256;
-								m = 0;
-								n = i;
-								k = WRITE_ADDR_MIN;
-
-								// loading program into memory
-								do {
-									// load next program block
-									while ((m <= TEMPBUF - 256) && (i > 0)) {
-										j += 256;
-										FileSeek(&PrevFile, j);
-										TempBufNum = FileRead(&PrevFile, &TempBuf[m], 256);
-										m += 256;
-										i -= 256;
-									}
-
-									// progress bar
-									Progress(k - WRITE_ADDR_MIN, n, COL_GREEN);
-
-									// program four 256-byte pages
-									FlashProgram(k, (const u8 *) TempBuf, m);
-									k += m;
-									if (i <= 0) break;
-									m = 0;
-
-								} while (TempBufNum > 0);
-
-								FileClose(&PrevFile);
-
-								SaveBootData();
-								return 1;
-							}
+							// Try to load selected application
+							res = load_application(fd);
+							if (res == RESULT_OK)
+								return RESULT_OK;
 						}
 					}
 					break;
 
 					// out of directory
 				case KEY_B:
-					// not root directory yet
-					if (PathLen > 1) {
-						// delete last directory
-						i = PathLen;
-						while (Path[PathLen - 1] != PATHCHAR) PathLen--;
-
-						// save last name
-						LastNameLen = i - PathLen;
-						memcpy(LastName, &Path[PathLen], LastNameLen);
-						LastNameDir = ATTR_DIR;
-
-						// delete path separator if not root
-						if (PathLen > 1) PathLen--;
-
-						// set terminating 0
-						Path[PathLen] = 0;
-
-						// request to reload current directory
-						FileTop = 0;
-						Reload();
-
-						// invalidate last mount time = current time - 2 seconds
-						LastMount = Time() - 2000000;
-
-						SaveBootData();
-					}
+					// Root directory, leave file manager
+					if (PathLen == 1)
+						return RESULT_CANCEL;
+					leave_directory();
 					break;
 
 					// restart program
 				case KEY_Y:
-					return 0;
-					break;
+					return RESULT_CANCEL;
 
-					// battery
 				case KEY_X:
+				default:
 					break;
 			}
 		}
 
 		// preview
-		Preview();
+		disp_preview();
 	}
 }

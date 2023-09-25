@@ -321,19 +321,27 @@ void InitBL() {
 	pwm_config_set_clkdiv(&config, 4.f);
 	pwm_init(slice_num, &config, true);
 
+#if USE_CONFIG
 	int bl_val = load_config_data().brightness;
-	SetBrightness(bl_val);
+	SetBrightness(bl_val, true);
+#else
+	SetBrightness(5, true);
+#endif
 }
 
-void DispOnOff(bool on) {
-	if (on) {
-		DispSleepDisable();
-		int bl_val = load_config_data().brightness;
-		SetBrightness(bl_val);
-	} else {
-		DispSleepEnable();
-		pwm_set_gpio_level(DISP_BLK_PIN, 0);
-	}
+void DispOn() {
+	DispSleepDisable();
+#if USE_CONFIG
+	int bl_val = load_config_data().brightness;
+	SetBrightness(bl_val, false);
+#else
+	SetBrightness(5, false);
+#endif
+}
+
+void DispOff() {
+	DispSleepEnable();
+	pwm_set_gpio_level(DISP_BLK_PIN, 0);
 }
 
 // initialize display
@@ -345,7 +353,8 @@ void DispOnOff(bool on) {
 void DispInit(u8 rot) {
 	// SPI initialize
 	spi_init(DISP_SPI, DISP_SPI_BAUD);
-	spi_set_format(DISP_SPI, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
+	// TODO TVE is it necessary?
+	//spi_set_format(DISP_SPI, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
 
 	// setup pins
 	GPIO_Out0(DISP_BLK_PIN);
@@ -384,10 +393,10 @@ void DispInit(u8 rot) {
 	buf[1] =    // data of RAM control 2 (default 0xF0)
 			0 +    //   B1,B0: method of pixel data transfer
 			//B2 +		//   B2: RGB interface bus width 0=18 bits, 1=6 bits
-			B3 +
+			(1<<3) +
 			//   B3: endian 0=big MSB first, 1=little LSB first (little endian LSB MSB = Intel, big endian MSB LSB = Motorola)
 			(2 << 4) +  //   B5,B4: align 65K data with bit 0: 0=equ 0, 1=equ 1, 2=equ high bit, 3=equ green bit 0
-			B6 + B7;    //   B7,B6: 1
+			(1<<6) + (1<<7);    //   B7,B6: 1
 	DispWriteCmdData(ST7789_RAMCTRL, buf, 2); // set RAM control
 
 	DispColorMode(COLOR_MODE_65K | COLOR_MODE_16BIT); // set color mode to RGB 16-bit 565
@@ -441,10 +450,14 @@ u8 CalcBrightness(u8 value) {
 	return bl_val;
 }
 
-void SetBrightness(u8 value) {
+void SetBrightness(u8 value, bool save) {
 	u8 bl_val = CalcBrightness(value);
 	pwm_set_gpio_level(DISP_BLK_PIN, bl_val * bl_val);
-	save_brightness(value);
+#if USE_CONFIG
+	if (save) {
+		save_brightness(value);
+	}
+#endif
 }
 
 #endif // USE_ST7789		// use ST7789 TFT display (st7789.c, st7789.h)

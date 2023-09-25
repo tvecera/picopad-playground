@@ -1,29 +1,19 @@
-// ****************************************************************************
+// Interface and part of the code taken from PicoLibSDK:
 //
-//                                Flash memory
-//
-// ****************************************************************************
-// Picoino SDK: Copyright (c) 2023 Miroslav Nemecek, Panda38@seznam.cz
-// Interface and part of the code taken from Picopad SDK
-// https://github.com/pajenicko/picopad
+// PicoLibSDK - Alternative SDK library for Raspberry Pico and RP2040
+// Copyright (c) 2023 Miroslav Nemecek, Panda38@seznam.cz, hardyplotter2@gmail.com
+// 	https://github.com/Panda381/PicoLibSDK
+//	https://www.breatharian.eu/hw/picolibsdk/index_en.html
+//	https://github.com/pajenicko/picopad
+//	https://picopad.eu/en/
 
-#include "picopad.h"
-#include "sdk_flash.h"
-
-// check boot 2 crc code, if it is valid
-Bool NOINLINE Boot2Check() {
-	u32 crc = Crc32ASlow(Boot2, BOOT2_SIZE_BYTES - 4);
-	return crc == Boot2[BOOT2_SIZE_BYTES / 4 - 1];
-}
+#include "include.h"
 
 // erase flash memory
 //  addr = start address to erase (offset from start of flash XIP_BASE; must be aligned to 4 KB FLASH_SECTOR_SIZE)
 //  count = number of bytes to erase (must be multiple of 4 KB FLASH_SECTOR_SIZE)
 // If core 1 is running, lockout it or reset it!
-Bool NOFLASH(FlashErase)(u32 addr, u32 count) {
-	// check boot 2 loader (this function can be run from Flash memory)
-	Bool ok = Boot2Check();
-
+bool __attribute__((noinline, section(".time_critical.FlashErase"))) FlashErase(uint32_t addr, uint32_t count) {
 	if ((addr < ERASE_ADDR_MIN) || (addr + count >= FLASH_ADDR_MAX)) {
 		// Outside flash
 		return false;
@@ -35,9 +25,7 @@ Bool NOFLASH(FlashErase)(u32 addr, u32 count) {
 	}
 
 	uint32_t uirq_status = save_and_disable_interrupts();
-
 	flash_range_erase(addr, count);
-
 	restore_interrupts(uirq_status);
 
 	return true;
@@ -48,10 +36,8 @@ Bool NOFLASH(FlashErase)(u32 addr, u32 count) {
 //  data = pointer to source data to program (must be in RAM)
 //  count = number of bytes to program (must be multiple of 256 B FLASH_PAGE_SIZE)
 // If core 1 is running, lockout it or reset it!
-Bool NOFLASH(FlashProgram)(u32 addr, const u8 *data, u32 count) {
-	// check boot 2 loader (this function can be run from Flash memory)
-	Bool ok = Boot2Check();
-
+bool __attribute__((noinline, section(".time_critical.FlashProgram")))
+FlashProgram(uint32_t addr, const uint8_t *data, uint32_t count) {
 	if ((addr < WRITE_ADDR_MIN) || (addr + count >= FLASH_ADDR_MAX)) {
 		// Outside flash
 		return false;
@@ -67,9 +53,7 @@ Bool NOFLASH(FlashProgram)(u32 addr, const u8 *data, u32 count) {
 	}
 
 	uint32_t uirq_status = save_and_disable_interrupts();
-
 	flash_range_program(addr, data, count);
-
 	restore_interrupts(uirq_status);
 
 	return true;
