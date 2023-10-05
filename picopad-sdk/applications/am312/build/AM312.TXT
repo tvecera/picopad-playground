@@ -1,5 +1,0 @@
-^YMotion sensor^0
-
-AM312 PIR sensor
-
-^WY^0 ....... quit
