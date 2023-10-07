@@ -1,5 +1,9 @@
 /**/cmake-build-debug/
 /**/cmake-build-release/
 /tools/venv/
+picopad-sdk/pico-sdk
 venv
 /**/venv
+picopad-sdk/gb
+sdcard/GameBoy
+sdcard/GameBoy.bmp
