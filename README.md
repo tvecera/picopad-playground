@@ -50,13 +50,3 @@ The code of this emulator is based on the original Picopad SDK source code.
 
 Fork of the Picopad SDK, built on the Pico SDK. The goal was to add the capability to use libraries for the Pico SDK 
 on the Picopad.
-
----
-
-[Picopad](https://picopad.eu/cs/index.html) is an open-source gaming console that offers a unique opportunity for young tech enthusiasts. It comes as a kit, allowing children to learn soldering and electronics principles while assembling their own gaming console. Additionally, Picopad supports programming in C, CircuitPython and MicroPython, making it an ideal tool for learning programming skills. With external cards for various educational expansions, Picopad is also a perfect tool for developing STEM (Science, Technology, Engineering, Mathematics) skills.
-
-![Picopad](https://github.com/Pajenicko/Picopad/blob/main/hardware/images/picopad.jpg)
-
-- **GitHub:** [https://github.com/pajenicko/picopad](https://github.com/pajenicko/picopad)
-- **www:** [https://picopad.eu/cs/index.html](https://picopad.eu/cs/index.html)
-- **Buy:** [https://pajenicko.cz/picopad](https://pajenicko.cz/picopad)
