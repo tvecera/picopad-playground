@@ -1,4 +1,4 @@
-### My programs and experiments for [Picopad](https://picopad.eu/cs/index.html) gaming console firmware from [tvecera](https://github.com/tvecera/picopad-playground):
+My programs and experiments for [Picopad](https://picopad.eu/cs/index.html) gaming console firmware from [tvecera](https://github.com/tvecera/picopad-playground):
 
 ![https://github.com/NetCzech/picopad-playground/blob/dc38bb2981816524ca9d5c9e422b2cf1822c4ae9/picopad-sdk/img/picopad-bootloader.png](https://github.com/NetCzech/picopad-playground/blob/dc38bb2981816524ca9d5c9e422b2cf1822c4ae9/picopad-sdk/img/picopad-bootloader.png)
 
