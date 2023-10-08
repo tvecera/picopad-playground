@@ -1,12 +1,18 @@
-# Picopad Playground
+### My programs and experiments for [Picopad](https://picopad.eu/cs/index.html) gaming console firmware from [tvecera](https://github.com/tvecera/picopad-playground):
 
-**Clone repository**
+![https://github.com/NetCzech/picopad-playground/blob/dc38bb2981816524ca9d5c9e422b2cf1822c4ae9/picopad-sdk/img/picopad-bootloader.png](https://github.com/NetCzech/picopad-playground/blob/dc38bb2981816524ca9d5c9e422b2cf1822c4ae9/picopad-sdk/img/picopad-bootloader.png)
 
-```bash
-  git clone --recurse-submodules https://github.com/tvecera/picopad-playground
-```
+[Picopad](https://picopad.eu/cs/index.html) is an open-source gaming console that offers a unique opportunity for young tech enthusiasts. It comes as a kit, allowing children to learn soldering and electronics principles while assembling their own gaming console. Additionally, Picopad supports programming in C, CircuitPython and MicroPython, making it an ideal tool for learning programming skills. With external cards for various educational expansions, Picopad is also a perfect tool for developing STEM (Science, Technology, Engineering, Mathematics) skills.
 
-## PyPicoPadImg Generator
+- **GitHub:** [https://github.com/pajenicko/picopad](https://github.com/pajenicko/picopad)
+- **www:** [https://picopad.eu/cs/index.html](https://picopad.eu/cs/index.html)
+- **Buy:** [https://pajenicko.cz/picopad](https://pajenicko.cz/picopad)
+
+---
+
+# Tools:
+
+### **1. PyPicoPadImg Generator**
 
 This Python program is designed to generate image arrays compatible with Picopad SDK. It takes an image file as input and 
 creates a C array of pixel values, ready to be used in your Picopad SDK software. The program utilizes the 
@@ -16,7 +22,9 @@ Please note that this software currently only tested on 8-bit PNG images using a
 
 The code of this generator is based on the original Picopad SDK source code.
 
-## PyConvertLoaderImg
+- **[Link](https://github.com/NetCzech/picopad-playground/tree/848e8973c58df0e720713a50837a7a9e324ac736/tools/PyPicoPadImg)**
+
+### **2. PyConvertLoaderImg**
 
 PyConvertLoaderImg is a Python-based tool that is capable of converting images into 16-bit BMP images. This tool
 specifically generates images that are compatible with the Picopad loader application.
@@ -24,7 +32,9 @@ specifically generates images that are compatible with the Picopad loader applic
 The tool reads image files, provides some basic information about them, downsamples the images by reducing the bit depth
 of each color channel, and saves the resulting image as a 16-bit BMP file.
 
-## Picopad TFT Display emulator
+- **[Link](https://github.com/NetCzech/picopad-playground/tree/848e8973c58df0e720713a50837a7a9e324ac736/tools/PyConvertLoaderImg)**
+
+### **3. Picopad TFT Display emulator**
 
 This project provides an emulator for the TFT display of Picopad handheld devices. It's designed to assist in the
 prototyping and development of applications for Picopad handhelds. With this tool, you can easily prepare and test your
@@ -32,12 +42,11 @@ display code using the API of the Picopad SDK.
 
 The code of this emulator is based on the original Picopad SDK source code.
 
-## Picopad SDK Pico SDK Fork
+- **[Link](https://github.com/NetCzech/picopad-playground/tree/848e8973c58df0e720713a50837a7a9e324ac736/tft-emulator)**
+
+---
+
+### Picopad SDK Pico SDK Fork
 
 Fork of the Picopad SDK, built on the Pico SDK. The goal was to add the capability to use libraries for the Pico SDK 
 on the Picopad.
-
-## Links
-
-- Picopad from Pajenicko e-shop
-- Picopad SDK (https://github.com/Pajenicko/Picopad)
