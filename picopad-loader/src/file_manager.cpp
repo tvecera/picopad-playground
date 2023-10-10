@@ -21,6 +21,7 @@
 * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#include "Arduino.h"
 #include "include.h"
 
 // boot loader resident segment
@@ -413,9 +414,13 @@ void load_file_list() {
 				}
 			}
 		} else {
-			if (has_extension(name, "PP2") && !is_hidden(FileI)) {
+			if ((has_extension(name, "PP2") || has_extension(name, "UF2")) && !is_hidden(FileI)) {
+				if (name[0] == '.') continue;
 				fd->len = len - 4;
-				memcpy(fd->name, name, len - 4);
+				memcpy(fd->name, name, fd->len);
+				memcpy(fd->extension, name + fd->len + 1, 3);
+				fd->name[fd->len] = '\0';
+				fd->extension[3] = '\0';
 				fd++;
 				FileNum++;
 			}
@@ -880,6 +885,25 @@ void enter_subdirectory(sFileDesc *fd) {
 	LastMount = to_us_since_boot(get_absolute_time()) - MOUNT_INVALID_INTERVAL;
 }
 
+static void run_from_ram(int size) {
+	// wait for no key pressed
+	KeyWaitNoPressed();
+
+	auto *s = (uint8_t *) FrameBuf;
+	device_terminate();
+	disable_interrupts();
+	reset_peripherals();
+	systick_hw->csr = 0x2;
+
+	// copy program to RAM
+	auto *d = (uint8_t *) SRAM_BASE;
+	for (; size > 0; size--) {
+		*d++ = *s++;
+	}
+
+	((void (*)(void)) (SRAM_BASE + 1))();
+}
+
 // Button A
 uint8_t load_application(sFileDesc *fd) {
 	uint8_t res;
@@ -887,16 +911,21 @@ uint8_t load_application(sFileDesc *fd) {
 	file_close(&PrevFile);
 
 	// prepare filename of the file
-	memcpy(TempBuf, fd->name, fd->len);
-	memcpy(&TempBuf[fd->len], ".PP2", 5);
+	snprintf(TempBuf, fd->len + 5, "%s.%s", fd->name, fd->extension);
+	bool to_ram = strncasecmp(fd->extension, "uf2", 3) == 0;
+	int loaded_size = 0;
+	res = flash_file(Path, TempBuf, to_ram, &loaded_size);
 
-	res = flash_application_file(Path, TempBuf);
 	if (res != RESULT_OK) {
 		disp_big_err(res);
 		return res;
 	}
 
 	save_boot_data();
+
+	if (to_ram) {
+		run_from_ram(loaded_size);
+	}
 
 	return RESULT_OK;
 }

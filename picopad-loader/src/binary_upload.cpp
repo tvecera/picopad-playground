@@ -47,6 +47,25 @@ static struct {
 		int addr;
 } context;
 
+// Derived from PicoLibSDK
+typedef struct {
+		// header size 32 bytes
+		uint32_t magic_start0;    // 0x000: UF2_MAGIC_START0 (0x0A324655)
+		uint32_t magic_start1;    // 0x004: UF2_MAGIC_START1 (0x9E5D5157)
+		uint32_t flags;      // 0x008: UF2_FLAG_FAMILY_ID_PRESENT (0x00002000)
+		uint32_t target_addr;    // 0x00C: address flash 0x10000000, 0x10000100,... or RAM 0x20000000, 0x20000100,...
+		uint32_t payload_size;    // 0x010: data size 0x00000100 (256)
+		uint32_t block_no;    // 0x014: block number 0, 1,...
+		uint32_t num_blocks;    // 0x018: total number of blocks
+		uint32_t file_size; // or familyID; // 0x01C: family ID RP2040_FAMILY_ID (0xe48bff56)
+
+		// sector data
+		uint8_t data[476];
+
+		// sector end magic
+		uint32_t magic_end;    // 0x1FC: UF2_MAGIC_END (0x0AB16F30)
+} sUf2;
+
 // Reset the context to its default state.
 void reset_context() {
 	memset(&context, 0, sizeof(context));
@@ -123,6 +142,8 @@ uint8_t delete_app(int size) {
 		count = MAX_FILE_SIZE;
 	else
 		count = count + 0x8000;
+
+
 	const auto *s = (const uint32_t *) (addr + count);
 	while (count >= 4) {
 		if (s[-1] != (uint32_t) -1) break;
@@ -159,12 +180,12 @@ uint8_t flash_binary(int addr, const uint8_t *data, uint32_t count, int size) {
 	disp_progress_bar(static_cast<int>(addr - WRITE_ADDR_MIN), size, COL_LTORANGE);
 
 	// Flash program pages
-	return FlashProgram(addr, (const u8 *) data, count) ? RESULT_OK : RESULT_ERROR_FLASH_PROGRAM;
+	return FlashProgram(addr, (const uint8_t *) data, count) ? RESULT_OK : RESULT_ERROR_FLASH_PROGRAM;
 }
 
 // Function to flash an application file from storage to memory.
 // Derived from PicoLibSDK
-uint8_t flash_application_file(char *path, char *filename) {
+uint8_t flash_application_file(char *path, char *filename, int *size) {
 	char buff[BUFFER_SIZE + 1];
 	int read_count;
 	int remaining_bytes, file_position, addr, pages_count, total_file_size;
@@ -212,7 +233,7 @@ uint8_t flash_application_file(char *path, char *filename) {
 			remaining_bytes -= FLASH_PAGE_SIZE;
 		}
 
-		res = flash_binary(addr, (const u8 *) buff, pages_count, total_file_size);
+		res = flash_binary(addr, (const uint8_t *) buff, pages_count, total_file_size);
 		if (res != RESULT_OK) {
 			file_close(&file);
 			return res;
@@ -225,9 +246,67 @@ uint8_t flash_application_file(char *path, char *filename) {
 
 	} while (read_count > 0);
 
+	memcpy(size, &pages_count, sizeof(int));
 	file_close(&file);
 
 	return RESULT_OK;
+}
+
+uint8_t flash_to_ram(char *path, char *filename, int *size) {
+	char buff[BUFFER_SIZE + 1];
+	int read_count;
+	int file_position, pages_count, total_file_size;
+	FIL file;
+
+	// open file
+	disp_info_page("Loading", "Try to run file");
+
+	set_dir(path);
+	Serial.println(path);
+	Serial.println(filename);
+	if (!file_open(&file, filename, FA_READ)) {
+		return RESULT_ERROR_OPEN_FILE;
+	}
+
+	total_file_size = static_cast<int>(file_size(&file));
+	Serial.println(total_file_size);
+
+	if (total_file_size > MAX_FILE_SIZE) {
+		file_close(&file);
+		return RESULT_ERROR_LARGE_FILE;
+	}
+
+	read_count = file_read(&file, buff, 32);
+	sUf2 *s = (sUf2 *) buff;
+	if (s->target_addr != 0x20000000 || read_count != 32) {
+		return RESULT_ERROR_NOT_RAM_UF2;
+	}
+
+	file_position = 32;
+	pages_count = 0;
+	auto *d = (uint8_t *) FrameBuf;
+	while (pages_count <= FRAMESIZE - 256)
+	{
+		if (!file_seek(&file, file_position)) {
+			return RESULT_ERROR_FLASH_PROGRAM;
+		}
+		read_count = file_read(&file, d + pages_count, FLASH_PAGE_SIZE);
+		if (read_count <= 0) break;
+		pages_count += read_count;
+		file_position += 512;
+	}
+
+	file_close(&file);
+	memcpy(size, &pages_count, sizeof(int));
+	return RESULT_OK;
+}
+
+uint8_t flash_file(char *path, char *filename, bool to_ram, int *size) {
+	if (to_ram) {
+		return flash_to_ram(path, filename, size);
+	} else {
+		return flash_application_file(path, filename, size);
+	}
 }
 
 const int STARTING_SEQUENCE[8] = {7, 3, 9, 3, 9, 1, 7, 3};
@@ -310,7 +389,9 @@ uint8_t flash_binary_serial() {
 				case flash:
 					context.buf[context.len_i++ % FLASH_PAGE_SIZE] = c;
 					if (context.len_i % FLASH_PAGE_SIZE == 0 || context.len_i == context.len) {
-						res = flash_binary(context.addr, (const u8 *) context.buf, FLASH_PAGE_SIZE, static_cast<int>(context.len));
+						res = flash_binary(
+								context.addr, (const uint8_t *) context.buf, FLASH_PAGE_SIZE, static_cast<int>(context.len)
+						);
 						if (res != RESULT_OK) {
 							Serial.printf("%s 0x%lx\n", get_result_detail(res).name, context.len_i);
 							reset_context();

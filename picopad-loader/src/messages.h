@@ -29,7 +29,8 @@
     RESULT(ERROR_ERASE_FLASH,      "Failed to", "erase flash") \
     RESULT(ERROR_FLASH_PROGRAM,    "Failed to", "load file") \
     RESULT(ERROR_INVALID_CRC,      "CRC doesn't", "match!") \
-    RESULT(ERROR_INVALID_SEQUENCE, "Invalid start", "sequence!")
+    RESULT(ERROR_NOT_RAM_UF2, 	   "Only in RAM", "app supported!") \
+		RESULT(ERROR_INVALID_SEQUENCE, "Invalid start", "sequence!")
 
 enum {
 #define RESULT(e, m1, m2) RESULT_##e,

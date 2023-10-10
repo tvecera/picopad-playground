@@ -24,7 +24,7 @@
 MEMORY
 {
     FLASH(rx) : ORIGIN = 0x10000000, LENGTH = 192k
-    RAM(rwx) : ORIGIN =  0x20000000, LENGTH = 256k
+    RAM(rwx) : ORIGIN =  0x20000000, LENGTH = __RAM_LENGTH__
     SCRATCH_X(rwx) : ORIGIN = 0x20040000, LENGTH = 4k /* core 0 stack */
     BOOTRAM(rwx) : ORIGIN = 0x20041000, LENGTH = 32 /* boot loader resident RAM */
     CONFIGRAM(rwx) : ORIGIN = 0x20041020, LENGTH = 32 /* boot loader resident RAM */

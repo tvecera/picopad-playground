@@ -35,6 +35,7 @@ static spi_t spis[] = {
 				.mosi_gpio=SD_TX,
 				.sck_gpio=SD_SCK,
 				.baud_rate=SD_BAUD,
+				.DMA_IRQ_num=DMA_IRQ_1,
 		}
 };
 
@@ -295,7 +296,7 @@ uint32_t file_size(FIL *file) {
 bool file_seek(FIL *file, uint32_t off) {
 	sd_card_t *pSD = sd_get_by_num(0);
 	if (!pSD->sd_test_com(pSD)) return false;
-	if ((file != NULL) && (file->flag > 0) && (file->err == 0)) return false;
+	if (file == NULL) return false;
 
 	return f_lseek(file, off) == FR_OK;
 }

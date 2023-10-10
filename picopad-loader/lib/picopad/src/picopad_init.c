@@ -23,6 +23,8 @@
 */
 
 #include "picopad.h"
+#include "RP2040.h"
+#include "hardware/resets.h"
 
 // Repeating timer for periodical call KeyScan
 struct repeating_timer timer0;
@@ -136,3 +138,20 @@ void reset_to_boot_loader() {
 	// Infinite loop: The watchdog will reset the system before breaking out of this loop
 	while(true);
 }
+
+void disable_interrupts() {
+	SysTick->CTRL &= ~1;
+
+	NVIC->ICER[0] = 0xFFFFFFFF;
+	NVIC->ICPR[0] = 0xFFFFFFFF;
+}
+
+void reset_peripherals() {
+	reset_block(~(
+			RESETS_RESET_IO_QSPI_BITS |
+			RESETS_RESET_PADS_QSPI_BITS |
+			RESETS_RESET_SYSCFG_BITS |
+			RESETS_RESET_PLL_SYS_BITS
+	));
+}
+

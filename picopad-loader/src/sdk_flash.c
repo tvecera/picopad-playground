@@ -13,7 +13,7 @@
 //  addr = start address to erase (offset from start of flash XIP_BASE; must be aligned to 4 KB FLASH_SECTOR_SIZE)
 //  count = number of bytes to erase (must be multiple of 4 KB FLASH_SECTOR_SIZE)
 // If core 1 is running, lockout it or reset it!
-bool __attribute__((noinline, section(".time_critical.FlashErase"))) FlashErase(uint32_t addr, uint32_t count) {
+bool __no_inline_not_in_flash_func(FlashErase)(uint32_t addr, uint32_t count) {
 	if ((addr < ERASE_ADDR_MIN) || (addr + count >= FLASH_ADDR_MAX)) {
 		// Outside flash
 		return false;
@@ -36,8 +36,7 @@ bool __attribute__((noinline, section(".time_critical.FlashErase"))) FlashErase(
 //  data = pointer to source data to program (must be in RAM)
 //  count = number of bytes to program (must be multiple of 256 B FLASH_PAGE_SIZE)
 // If core 1 is running, lockout it or reset it!
-bool __attribute__((noinline, section(".time_critical.FlashProgram")))
-FlashProgram(uint32_t addr, const uint8_t *data, uint32_t count) {
+bool __no_inline_not_in_flash_func(FlashProgram)(uint32_t addr, const uint8_t *data, uint32_t count) {
 	if ((addr < WRITE_ADDR_MIN) || (addr + count >= FLASH_ADDR_MAX)) {
 		// Outside flash
 		return false;

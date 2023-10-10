@@ -56,7 +56,8 @@ uint8_t show_file_manager();
 typedef struct { // 10 bytes
     uint8_t	attr;		// attributes ATTR_*
     uint8_t	len;		// file name length
-    char	name[FILE_NAME_SIZE];	// file name (without extension and without terminating zero)
+    char name[FILE_NAME_SIZE];	// file name (without extension and without terminating zero)
+		char extension[4];
 } sFileDesc;
 
 // colors

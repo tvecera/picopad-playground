@@ -40,6 +40,10 @@ void reset_to_bootsel();
 // Resets the device to the onboard bootloader.
 void reset_to_boot_loader();
 
+void disable_interrupts();
+
+void reset_peripherals();
+
 #ifdef __cplusplus
 }
 #endif

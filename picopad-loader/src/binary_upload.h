@@ -33,7 +33,7 @@
 uint8_t flash_binary_serial();
 
 // Function to flash an application file from storage to memory.
-uint8_t flash_application_file(char *path, char *filename);
+uint8_t flash_file(char *path, char *filename, bool to_ram, int *size);
 
 // Open boot sel dialog
 uint8_t show_bootsel_dialog();

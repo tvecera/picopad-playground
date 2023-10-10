@@ -33,5 +33,6 @@
 #include "messages.h"
 #include "sdk_flash.h"
 #include "system_info.h"
+#include "pico/printf.h"
 
 #endif //LOADER_INCLUDE_H

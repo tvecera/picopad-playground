@@ -63,22 +63,6 @@ const uint16_t battery_icon_color[3] = {
 		RGBTO16(0, 240, 0),
 };
 
-static void disable_interrupts() {
-	SysTick->CTRL &= ~1;
-
-	NVIC->ICER[0] = 0xFFFFFFFF;
-	NVIC->ICPR[0] = 0xFFFFFFFF;
-}
-
-static void reset_peripherals() {
-	reset_block(~(
-			RESETS_RESET_IO_QSPI_BITS |
-			RESETS_RESET_PADS_QSPI_BITS |
-			RESETS_RESET_SYSCFG_BITS |
-			RESETS_RESET_PLL_SYS_BITS
-	));
-}
-
 static void jump_to_vtor() {
 	uint32_t vtor = XIP_BASE + WRITE_ADDR_MIN;
 	// Derived from the Leaf Labs Cortex-M3 bootloader.
@@ -172,17 +156,6 @@ void setup() {
 	// Initialize serial communication
 	Serial.begin(115200);
 	delay(100);
-
-	// For testing
-//	gpio_init(16);
-//	gpio_set_dir(16, GPIO_OUT);
-//	gpio_put(16, true);
-//	gpio_init(DISP_CS_PIN);
-//	gpio_set_dir(DISP_CS_PIN, GPIO_OUT);
-//	gpio_put(DISP_CS_PIN, true);
-//	gpio_init(SD_CS);
-//	gpio_set_dir(SD_CS, GPIO_OUT);
-//	gpio_put(SD_CS, true);
 
 	// Initialize the device and display
 	device_init();

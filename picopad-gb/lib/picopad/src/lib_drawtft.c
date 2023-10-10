@@ -18,8 +18,6 @@
 
 #if USE_DRAWTFT		// use TFT drawing (lib_drawtft.c, lib_drawtft.h)
 
-#include "fonts/picopad_fonts.h"
-
 const u8* pDrawFont = FONT; // font 8x16
 int DrawFontHeight = FONTH; // font height
 int DrawFontWidth = FONTW; // font width (5 to 8)
@@ -3611,5 +3609,134 @@ DrawPrint test sample:
 	);
 */
 #endif
+
+/*
+ * -----------------------------------------------------------------------------
+ *  Code adapted from Adafruit GFX Library
+ *
+ *  Original Library Author: Adafruit Industries
+ *  Copyright (c) 2013 Adafruit Industries.  All rights reserved.
+ *
+ *  The original library is available at: https://github.com/adafruit/Adafruit-GFX-Library
+ *
+ *  Adafruit GFX library is used under [the license the library is released under, e.g., MIT License].
+ *  Please ensure that you comply with licensing terms when using or distributing this adapted code.
+ * -----------------------------------------------------------------------------
+ */
+void DrawVLine(int x, int y, int h, u16 color) {
+	DrawLine(x, y, x, y + h - 1, color);
+}
+
+void DrawHLine(int x, int y, int w, u16 color) {
+	DrawLine(x, y, x + w - 1, y, color);
+}
+
+void DrawFillCircleHelper(int x0, int y0, int r, int corners, int delta, u16 color) {
+
+	int f = 1 - r;
+	int ddF_x = 1;
+	int ddF_y = -2 * r;
+	int x = 0;
+	int y = r;
+	int px = x;
+	int py = y;
+
+	delta++; // Avoid some +1's in the loop
+
+	while (x < y) {
+		if (f >= 0) {
+			y--;
+			ddF_y += 2;
+			f += ddF_y;
+		}
+		x++;
+		ddF_x += 2;
+		f += ddF_x;
+		// These checks avoid double-drawing certain lines, important
+		// for the SSD1306 library which has an INVERT drawing mode.
+		if (x < (y + 1)) {
+			if (corners & 1)
+				DrawVLine(x0 + x, y0 - y, 2 * y + delta, color);
+			if (corners & 2)
+				DrawVLine(x0 - x, y0 - y, 2 * y + delta, color);
+		}
+		if (y != py) {
+			if (corners & 1)
+				DrawVLine(x0 + py, y0 - px, 2 * px + delta, color);
+			if (corners & 2)
+				DrawVLine(x0 - py, y0 - px, 2 * px + delta, color);
+			py = y;
+		}
+		px = x;
+	}
+}
+
+void DrawCircleHelper(int x0, int y0, int r, int cornername, int color) {
+	int f = 1 - r;
+	int ddF_x = 1;
+	int ddF_y = -2 * r;
+	int x = 0;
+	int y = r;
+
+	while (x < y) {
+		if (f >= 0) {
+			y--;
+			ddF_y += 2;
+			f += ddF_y;
+		}
+		x++;
+		ddF_x += 2;
+		f += ddF_x;
+		if (cornername & 0x4) {
+			DrawPoint(x0 + x, y0 + y, color);
+			DrawPoint(x0 + y, y0 + x, color);
+		}
+		if (cornername & 0x2) {
+			DrawPoint(x0 + x, y0 - y, color);
+			DrawPoint(x0 + y, y0 - x, color);
+		}
+		if (cornername & 0x8) {
+			DrawPoint(x0 - y, y0 + x, color);
+			DrawPoint(x0 - x, y0 + y, color);
+		}
+		if (cornername & 0x1) {
+			DrawPoint(x0 - y, y0 - x, color);
+			DrawPoint(x0 - x, y0 - y, color);
+		}
+	}
+}
+
+void DrawFillRect(int x, int y, int w, int h, u16 color) {
+	for (int i = x; i < x + w; i++) {
+		DrawVLine(i, y, h, color);
+	}
+}
+
+void DrawRoundRect(int x, int y, int w, int h, int r, u16 color) {
+	int max_radius = ((w < h) ? w : h) / 2; // 1/2 minor axis
+	if (r > max_radius)
+		r = max_radius;
+	// smarter version
+	DrawHLine(x + r, y, w - 2 * r, color);         // Top
+	DrawHLine(x + r, y + h - 1, w - 2 * r, color); // Bottom
+	DrawVLine(x, y + r, h - 2 * r, color);         // Left
+	DrawVLine(x + w - 1, y + r, h - 2 * r, color); // Right
+	// draw four corners
+	DrawCircleHelper(x + r, y + r, r, 1, color);
+	DrawCircleHelper(x + w - r - 1, y + r, r, 2, color);
+	DrawCircleHelper(x + w - r - 1, y + h - r - 1, r, 4, color);
+	DrawCircleHelper(x + r, y + h - r - 1, r, 8, color);
+}
+
+void DrawFillRoundRect(int x, int y, int w, int h, int r, int color) {
+	int max_radius = ((w < h) ? w : h) / 2; // 1/2 minor axis
+	if (r > max_radius)
+		r = max_radius;
+	// smarter version
+	DrawFillRect(x + r, y, w - 2 * r, h, color);
+	// draw four corners
+	DrawFillCircleHelper(x + w - r - 1, y + r, r, 1, h - 2 * r - 1, color);
+	DrawFillCircleHelper(x + r, y + r, r, 2, h - 2 * r - 1, color);
+}
 
 #endif // USE_DRAWTFT		// use TFT drawing (lib_drawtft.c, lib_drawtft.h)

@@ -299,7 +299,8 @@ void DispUpdateAll() {
 	DispUpdate();
 }
 
-#else
+#endif
+
 
 void DispClear() {
 	DispWindow(0, WIDTH, 0, HEIGHT);
@@ -309,8 +310,6 @@ void DispClear() {
 	for (int i = 0; i < HEIGHT; i++)
 		DispWriteData(&row, WIDTH * 2);
 }
-
-#endif
 
 void InitBL() {
 	// https://github.com/elehobica/pico_st7735_80x160/blob/main/main.c
@@ -424,13 +423,7 @@ void DispInit(u8 rot) {
 // terminate display
 void DispTerm() {
 	// clear display
-	int i;
-#if USE_DRAWTFT
-	for (i = 0; i < FRAMESIZE; i++) FrameBuf[i] = 0;
-	DispUpdateAll();  // update all display (for 1st time to avoid display flickering)
-#else
 	DispClear();
-#endif
 
 	// disable display
 	DispWriteCmd(ST7789_DISPOFF);

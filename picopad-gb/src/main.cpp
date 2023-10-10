@@ -12,7 +12,7 @@
 #endif
 
 // Enable sound
-#define ENABLE_SOUND  0
+#define ENABLE_SOUND  1
 // Enable LCD
 #define ENABLE_LCD    1
 // High accuracy mode for Peanut GB
@@ -78,21 +78,6 @@ static uint8_t pixelBuffer[LCD_WIDTH];
 
 // GameBoy context
 static struct gb_s gbContext;
-
-void DrawClearCol(u16 col) {
-	DispWindow(0,WIDTH, 0, HEIGHT);
-	u16 row[WIDTH] = {0};
-	memset(&row, col, WIDTH);
-
-	for (int i = 0; i < HEIGHT; i++)
-		DispWriteData(&row, WIDTH * 2);
-}
-
-// clear canvas with black color
-void DrawClear()
-{
-	DrawClearCol(0);
-}
 
 // GameBoy ROM read function
 uint8_t gbRomRead(struct gb_s *gb, const uint_fast32_t addr) {
@@ -207,7 +192,7 @@ void lcdDrawLine(struct gb_s *gb, const uint8_t pixels[LCD_WIDTH], const uint_fa
 void core1_entry() {
 	union coreCommand cmd{};
 
-	DrawClear();
+	DispClear();
 
 	while (true) {
 		cmd.full = multicore_fifo_pop_blocking();
@@ -260,8 +245,8 @@ void setup(void) {
 	// Configure clocks and initialize SPI
 	clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, 133000 * 1000, 133000 * 1000);
 
-	DeviceInit();
-	DrawClear();
+	device_init();
+	DispClear();
 
 	volume = load_config_data().volume;
 	volume = volume > 0 ? static_cast<float>(0.2f * exp(log(10) * volume / 5)) : 0;
@@ -360,7 +345,7 @@ void loop() {
 		if (!gbContext.direct.joypad_bits.select) {
 			if (!gbContext.direct.joypad_bits.start && prevGamepadState.start) {
 				// Reset core1 and reset to bootloader
-				ResetToBootLoader();
+				reset_to_boot_loader();
 			}
 
 			if (!gbContext.direct.joypad_bits.a && prevGamepadState.a) {

@@ -52,10 +52,9 @@ void setup() {
 	// Initialize the device and display
 	device_init();
 	DrawClear();
-	DispUpdate();
 	SelFont8x8();
-
-	DrawText("PWMAudio library test", WIDTH / 2 - 10, HEIGHT / 2 - 4, COL_WHITE);
+	DrawText("PWMAudio library test", WIDTH / 2 - (10 * 8), HEIGHT / 2 - 4, COL_WHITE);
+	DispUpdate();
 
 	pwm.onTransmit(cb);
 	pwm.begin(44100);
