@@ -4,6 +4,8 @@ My programs and experiments for [Picopad](https://picopad.eu/cs/index.html) gami
 
 [Picopad](https://picopad.eu/cs/index.html) is an open-source gaming console that offers a unique opportunity for young tech enthusiasts. It comes as a kit, allowing children to learn soldering and electronics principles while assembling their own gaming console. Additionally, Picopad supports programming in C, CircuitPython and MicroPython, making it an ideal tool for learning programming skills. With external cards for various educational expansions, Picopad is also a perfect tool for developing STEM (Science, Technology, Engineering, Mathematics) skills.
 
+![https://github.com/NetCzech/picopad-playground/blob/1fbaafaa49d3030ec8f34bf792133d24e66d1c40/picopad-sdk/img/picopad.jpg](https://github.com/NetCzech/picopad-playground/blob/1fbaafaa49d3030ec8f34bf792133d24e66d1c40/picopad-sdk/img/picopad.jpg)
+
 ---
 > **GitHub:**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[https://github.com/pajenicko/picopad](https://github.com/pajenicko/picopad)
 
