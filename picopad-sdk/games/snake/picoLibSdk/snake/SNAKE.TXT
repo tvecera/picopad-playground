@@ -1,0 +1,10 @@
+^YSNAKE^0
+
+Classics Nokia phone game
+Year:             1997
+
+^WUP^0            up
+^WDOWN^0          down
+^WLEFT^0          left
+^WRIGHT^0         right
+^WY^0             quit

@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
 
-set(PICO_TOOLCHAIN_PATH /Applications/ARM)
-set(PICO_SDK_PATH ../../pico-sdk)
+set(PICO_TOOLCHAIN_PATH C:/Development/arm-none-eabi/bin)
+set(PICO_SDK_PATH C:/Development/sdk/pico/pico-sdk)
 set(PICOPAD_BASE_PATH ../../picopad-base)
 
-set(CMAKE_SIZE ${PICO_TOOLCHAIN_PATH}/bin/arm-none-eabi-size)
+set(CMAKE_SIZE ${PICO_TOOLCHAIN_PATH}/arm-none-eabi-size)
 
 include(pico_sdk_import.cmake)
 include(picopad_base_import.cmake)
