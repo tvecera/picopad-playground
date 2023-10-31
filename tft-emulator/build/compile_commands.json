@@ -1,8 +1,0 @@
-[
-{
-  "directory": "C:/Development/sdk/netczech/picopad-playground/tft-emulator/build",
-  "command": "C:\\Development\\msys64\\mingw64\\bin\\g++.exe -DSFML_STATIC @CMakeFiles/tft-emulator.dir/includes_CXX.rsp -g -o CMakeFiles\\tft-emulator.dir\\main.cpp.obj -c C:\\Development\\sdk\\netczech\\picopad-playground\\tft-emulator\\main.cpp",
-  "file": "C:/Development/sdk/netczech/picopad-playground/tft-emulator/main.cpp",
-  "output": "CMakeFiles/tft-emulator.dir/main.cpp.obj"
-}
-]
